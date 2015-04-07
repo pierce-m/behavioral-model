@@ -2,7 +2,7 @@ AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 
 noinst_LIBRARIES = libbflpmtrie.a
 
-common_source =
+common_source = \
 src/bf_lpm_trie.c
 
 common_include = \
