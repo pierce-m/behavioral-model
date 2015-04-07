@@ -28,6 +28,10 @@ AC_PATH_PROG([MSGC], [thrift], [])
 AS_IF([test x"$MSGC" = x],
 [AC_MSG_ERROR([cannot find thrift])])
 
+# Check for libgmp3 and nanomsg
+PKG_CHECK_MODULES([libgmp3], [libgmp3])
+PKG_CHECK_MODULES([libnanomsg], [libnanomsg])
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
 AC_TYPE_SIZE_T
