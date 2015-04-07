@@ -29,8 +29,8 @@ AC_PATH_PROG([MSGC], [thrift], [])
 AS_IF([test x"$MSGC" = x],
 [AC_MSG_ERROR([cannot find thrift])])
 
-# Check for libgmp3, libnanomsg, libjsoncpp
-PKG_CHECK_MODULES([libgmp3], [libgmp3])
+# Check for libgmp10, libnanomsg, libjsoncpp
+PKG_CHECK_MODULES([libgmp10], [libgmp10])
 PKG_CHECK_MODULES([libnanomsg], [libnanomsg])
 PKG_CHECK_MODULES([libjsoncpp0], [libjsoncpp0])
 
