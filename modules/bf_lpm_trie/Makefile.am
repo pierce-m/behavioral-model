@@ -8,4 +8,4 @@ src/bf_lpm_trie.c
 common_include = \
 include/bf_lpm_trie/bf_lpm_trie.h
 
-libbmsim_a_SOURCES = $(common_source) $(common_include)
+libbflpmtrie_a_SOURCES = $(common_source) $(common_include)
