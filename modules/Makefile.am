@@ -1,1 +1,1 @@
-SUBDIR = bf_lpm_trie bm_sim bm_runtime BMI
+SUBDIRS = bf_lpm_trie bm_sim bm_runtime BMI
