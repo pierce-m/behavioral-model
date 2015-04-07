@@ -15,4 +15,4 @@ src/runtime_types.h
 common_include = \
 include/bm_runtime/bm_runtime.h
 
-libbmsim_a_SOURCES = $(common_source) $(common_include)
+libbmruntime_a_SOURCES = $(common_source) $(common_include)
