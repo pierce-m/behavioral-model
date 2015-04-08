@@ -1,6 +1,7 @@
-GTEST_DIR=/home/anirudh/Downloads/gtest-1.7
-AM_CXXFLAGS = -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread
-LDADD = -lm libgtest.a libgmain.a ../src/libtm.a ../protobufs/libtmprotos.a $(protobuf_LIBS)
+GTEST_DIR=/home/anirudh/Downloads/gtest-1.7.0
+AM_CXXFLAGS = -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -I$(srcdir)/../modules/bm_sim/include -I$(srcdir)/../modules/bf_lpm_trie/include -pthread
+LDADD = libgtest.a libgmain.a $(srcdir)/../modules/bm_sim/libbmsim.a $(srcdir)/../modules/bf_lpm_trie/libbflpmtrie.a -lnanomsg -lboost_system -lboost_thread -lm -lgmp -lJudy -ljsoncpp
+AUTOMAKE_OPTIONS = foreign subdir-objects no-dependencies
 
 # Static library for gtest
 check_LIBRARIES = libgtest.a libgmain.a
