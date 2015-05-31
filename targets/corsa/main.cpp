@@ -33,7 +33,7 @@ extern "C" {
 
 #define CHECK(x) assert(!x)
 
-// #define PCAP_DUMP
+#define PCAP_DUMP
 
 static bmi_port_mgr_t *port_mgr;
 
@@ -121,11 +121,13 @@ main(int argc, char* argv[])
     CHECK(bmi_port_interface_add(port_mgr, "veth3", 2, "port2.pcap"));
     CHECK(bmi_port_interface_add(port_mgr, "veth5", 3, "port3.pcap"));
     CHECK(bmi_port_interface_add(port_mgr, "veth7", 4, "port4.pcap"));
+    CHECK(bmi_port_interface_add(port_mgr, "veth251", 125, "cpuport.pcap"));
 #else
     CHECK(bmi_port_interface_add(port_mgr, "veth1", 1, NULL));
     CHECK(bmi_port_interface_add(port_mgr, "veth3", 2, NULL));
     CHECK(bmi_port_interface_add(port_mgr, "veth5", 3, NULL));
     CHECK(bmi_port_interface_add(port_mgr, "veth7", 4, NULL));
+    CHECK(bmi_port_interface_add(port_mgr, "veth251", 125, NULL));
 #endif
   }
   else {
@@ -140,6 +142,7 @@ main(int argc, char* argv[])
       CHECK(bmi_port_interface_add(port_mgr, iface.c_str(), port_num++, NULL));
 #endif
     }
+    CHECK(bmi_port_interface_add(port_mgr, "veth251", 125, "cpuport.pcap"));
   }
   
   start_processing(transmit_fn);

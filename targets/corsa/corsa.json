@@ -277,37 +277,8 @@
     ],
     "actions": [
         {
-            "name": "send_to_controller",
-            "id": 0,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_port"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0xfa"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "nop",
-            "id": 1,
-            "runtime_data": [],
-            "primitives": []
-        },
-        {
             "name": "drop_pkt",
-            "id": 2,
+            "id": 0,
             "runtime_data": [],
             "primitives": [
                 {
@@ -333,8 +304,36 @@
             ]
         },
         {
+            "name": "write_mac",
+            "id": 1,
+            "runtime_data": [
+                {
+                    "name": "mac",
+                    "bitwidth": 48
+                }
+            ],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "eth",
+                                "dstAddr"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "fwd_next_hop",
-            "id": 3,
+            "id": 2,
             "runtime_data": [
                 {
                     "name": "port",
@@ -378,7 +377,36 @@
         },
         {
             "name": "vlan_valid",
+            "id": 3,
+            "runtime_data": [],
+            "primitives": []
+        },
+        {
+            "name": "send_to_controller",
             "id": 4,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_port"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7d"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "nop",
+            "id": 5,
             "runtime_data": [],
             "primitives": []
         }
@@ -454,11 +482,13 @@
                     ],
                     "actions": [
                         "drop_pkt",
-                        "vlan_valid"
+                        "vlan_valid",
+                        "nop"
                     ],
                     "next_tables": {
                         "drop_pkt": "mpls_table",
-                        "vlan_valid": "mpls_table"
+                        "vlan_valid": "mpls_table",
+                        "nop": "mpls_table"
                     },
                     "default_action": null
                 },
@@ -510,26 +540,36 @@
                     "type": "exact",
                     "max_size": 256,
                     "with_counters": false,
-                    "key": [],
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "standard_metadata",
+                                "egress_port"
+                            ]
+                        }
+                    ],
                     "actions": [
                         "nop",
-                        "send_to_controller"
+                        "send_to_controller",
+                        "write_mac"
                     ],
                     "next_tables": {
                         "nop": null,
-                        "send_to_controller": null
+                        "send_to_controller": null,
+                        "write_mac": null
                     },
                     "default_action": null
                 },
                 {
                     "name": "fib_table",
                     "id": 6,
-                    "type": "ternary",
+                    "type": "lpm",
                     "max_size": 16384,
                     "with_counters": false,
                     "key": [
                         {
-                            "match_type": "ternary",
+                            "match_type": "lpm",
                             "target": [
                                 "ipv4",
                                 "dstAddr"
@@ -537,10 +577,12 @@
                         }
                     ],
                     "actions": [
+                        "nop",
                         "drop_pkt",
                         "fwd_next_hop"
                     ],
                     "next_tables": {
+                        "nop": "local_table",
                         "drop_pkt": "local_table",
                         "fwd_next_hop": "local_table"
                     },

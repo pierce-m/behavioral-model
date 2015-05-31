@@ -877,6 +877,12 @@ indigo_core_receive_controller_message(indigo_cxn_id_t cxn_id,
 }
 #endif
 
+indigo_core_listener_result_t
+packet_in(void *arg)
+{
+    return 0;
+}
+
 int openflow_setup(int argc, char* argv[])
 {
     int controller_id;
@@ -890,6 +896,10 @@ int openflow_setup(int argc, char* argv[])
     OK(ind_cxn_init(&cm_config));
 
     OK(indigo_cxn_status_change_register(cxn_status_change, NULL));
+    /*
+    OK(indigo_core_packet_in_listener_register(
+        (indigo_core_packet_in_listener_f)packet_in));
+    */
 
     OK(ind_core_init(&core));
 

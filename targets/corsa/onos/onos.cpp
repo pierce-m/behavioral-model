@@ -17,6 +17,13 @@ extern "C" {
     void start_cpu_packet_handler();
 }
 
+int mask_to_prefix (uint32_t address) {
+   int zero_bits;
+   if(address == 0) return 0;
+   for (zero_bits = 0; (address & 1) == 0; address >>= 1, zero_bits++);
+   return (32 - zero_bits);
+}
+
 p4_pd_sess_hdl_t sess_hdl;
 p4_pd_dev_target_t dev_tgt = {0, 0xFF};
 
@@ -43,7 +50,8 @@ void corsa_set_default_tables(p4_pd_sess_hdl_t sess_hdl,
     p4_pd_corsa_cos_map_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
-    p4_pd_corsa_fib_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
+//    p4_pd_corsa_fib_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
+    p4_pd_corsa_fib_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
     p4_pd_corsa_local_table_set_default_action_nop(sess_hdl, dev_tgt,
@@ -55,7 +63,10 @@ extern "C" {
     void local_table_add(void **entry)
     {
         p4_pd_entry_hdl_t entry_hdl;
-        p4_pd_corsa_local_table_table_add_with_send_to_controller(sess_hdl, dev_tgt, &entry_hdl);
+        p4_pd_corsa_local_table_match_spec_t ms;
+
+        ms.standard_metadata_egress_port = 125;
+        p4_pd_corsa_local_table_table_add_with_send_to_controller(sess_hdl, dev_tgt, &ms, &entry_hdl);
         *(p4_pd_entry_hdl_t *)(entry) = entry_hdl;
     } 
     void local_table_mod(void *entry)
@@ -144,13 +155,13 @@ extern "C" {
         p4_pd_corsa_fwd_next_hop_action_spec_t as;
 
         ms.ipv4_dstAddr = ipv4;
-        ms.ipv4_dstAddr_mask = ipv4_mask;
-
+        ms.ipv4_dstAddr_prefix_length = mask_to_prefix(ipv4_mask);
+printf("IP 0x%08x/%d\n", ms.ipv4_dstAddr, ms.ipv4_dstAddr_prefix_length); 
         if(cmd == 1)
-            p4_pd_corsa_fib_table_table_add_with_drop_pkt(sess_hdl, dev_tgt, &ms, pri, &entry_hdl);
+            p4_pd_corsa_fib_table_table_add_with_drop_pkt(sess_hdl, dev_tgt, &ms, /*pri,*/ &entry_hdl);
         else {
             as.action_port = port;
-            p4_pd_corsa_fib_table_table_add_with_fwd_next_hop(sess_hdl, dev_tgt, &ms, pri, &as, &entry_hdl);
+            p4_pd_corsa_fib_table_table_add_with_fwd_next_hop(sess_hdl, dev_tgt, &ms, /*pri,*/ &as, &entry_hdl);
         }
         *(p4_pd_entry_hdl_t *)(entry) = entry_hdl;
     }

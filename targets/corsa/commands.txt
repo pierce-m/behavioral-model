@@ -1,0 +1,12 @@
+table_set_default mac_table nop
+table_set_default vlan_mpls_table nop
+table_set_default vlan_table nop
+table_set_default mpls_table nop
+table_set_default ether_table nop
+table_set_default cos_map_table nop
+table_set_default fib_table nop
+table_set_default local_table send_to_controller
+table_add local_table write_mac 1 => 00:04:00:00:00:00
+table_add local_table write_mac 2 => 00:04:00:00:00:01
+table_add fib_table fwd_next_hop 10.0.0.10/32 => 1
+table_add fib_table fwd_next_hop 10.0.1.10/32 => 2

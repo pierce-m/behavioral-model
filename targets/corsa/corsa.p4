@@ -2,6 +2,9 @@
 *   corsa.p4
 */
 
+
+#define CPU_PORT 125
+
 header_type  cpu_header_t {
     fields {
         dstAddr : 48;
@@ -227,6 +230,7 @@ table vlan_table {
     actions {
         drop_pkt; // default action
         vlan_valid;
+        nop;
     }
     size : 4096;
 }
@@ -249,7 +253,7 @@ action fwd_pkt(port) {
 
 action send_to_controller() {
     // send to cpu
-    modify_field(standard_metadata.egress_port, 250);
+    modify_field(standard_metadata.egress_port, CPU_PORT);
 }
 
 table ether_table {
@@ -265,10 +269,18 @@ table ether_table {
     size : 256;
 }
 
+action write_mac(mac) {
+    modify_field(eth.dstAddr, mac);
+}
+
 table local_table {
+    reads {
+        standard_metadata.egress_port: exact;
+    }
     actions {
         nop;
         send_to_controller;
+        write_mac;
     }
     size : 256;
 }
@@ -280,9 +292,10 @@ action fwd_next_hop(port) {
 
 table fib_table {
     reads {
-        ipv4.dstAddr : ternary;
+        ipv4.dstAddr : lpm;
     }
     actions {
+        nop;
         drop_pkt;
         fwd_next_hop;
     }
