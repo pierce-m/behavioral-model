@@ -27,12 +27,10 @@ class SingleSwitchTopo(Topo):
     def __init__(self, sw_path, thrift_port, n, **opts):
         # Initialize topology and default options
         Topo.__init__(self, **opts)
-
         switch = self.addSwitch('s1',
                                 sw_path = sw_path,
                                 thrift_port = thrift_port,
                                 pcap_dump = True)
-        
         for h in xrange(n):
             host = self.addHost('h%d' % (h + 1),
                                 ip = "10.0.%d.10/24" % h,

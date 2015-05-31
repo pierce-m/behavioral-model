@@ -1,0 +1,13 @@
+INDIGO_DIR = ../../../modules/bfofagent/submodules/indigo/
+INCS = $(INDIGO_DIR)/modules/OFConnectionManager/module/inc $(INDIGO_DIR)/submodules/infra/modules/AIM/module/inc $(INDIGO_DIR)/modules/indigo/module/inc $(INDIGO_DIR)/submodules/loxigen-artifacts/loci/inc  $(INDIGO_DIR)/modules/SocketManager/module/inc $(INDIGO_DIR)/modules/OFStateManager/module/inc 
+LIB_DIR = $(INDIGO_DIR)/targets/utests/OFConnectionManager/build/gcc-local/lib
+LIBS = $(LIB_DIR)/OFStateManager.a $(LIB_DIR)/OFConnectionManager.a $(LIB_DIR)/AIM.a $(LIB_DIR)/SocketManager.a $(LIB_DIR)/indigo.a $(LIB_DIR)/loci.a $(LIB_DIR)/cjson.a $(LIB_DIR)/Configuration.a $(LIB_DIR)/debug_counter.a $(LIB_DIR)/timer_wheel.a $(LIB_DIR)/BigRing.a $(LIB_DIR)/OS.a $(LIB_DIR)/BigHash.a $(LIB_DIR)/minimatch.a $(LIB_DIR)/BigList.a 
+
+AM_CPPFLAGS =  -I$(srcdir)/../../../thrift_src/gen-cpp -fpermissive -Wsign-compare -I$(INCS)
+AM_CFLAGS = -fpermissive -Wsign-compare  -I$(INCS)
+
+bin_PROGRAMS = onos
+onos_SOURCES = onos.cpp openflow_helper.c
+onos_LDADD = -lJudy -lnanomsg -lthrift $(srcdir)/../../../thrift_src/libruntimestubs.la  $(LIBS)
+onos_LDFLAGS = -pthread
+

@@ -1,0 +1,587 @@
+{
+    "header_types": [
+        {
+            "name": "standard_metadata_t",
+            "id": 0,
+            "fields": [
+                [
+                    "ingress_port",
+                    9
+                ],
+                [
+                    "packet_length",
+                    32
+                ],
+                [
+                    "egress_spec",
+                    9
+                ],
+                [
+                    "egress_port",
+                    9
+                ],
+                [
+                    "egress_instance",
+                    32
+                ],
+                [
+                    "instance_type",
+                    32
+                ],
+                [
+                    "clone_spec",
+                    32
+                ],
+                [
+                    "_padding",
+                    5
+                ]
+            ]
+        },
+        {
+            "name": "ethernet_t",
+            "id": 1,
+            "fields": [
+                [
+                    "dstAddr",
+                    48
+                ],
+                [
+                    "srcAddr",
+                    48
+                ],
+                [
+                    "ethType",
+                    16
+                ]
+            ]
+        },
+        {
+            "name": "vlan_t",
+            "id": 2,
+            "fields": [
+                [
+                    "pcp",
+                    3
+                ],
+                [
+                    "cfi",
+                    1
+                ],
+                [
+                    "vid",
+                    12
+                ],
+                [
+                    "ethType",
+                    16
+                ]
+            ]
+        },
+        {
+            "name": "ipv4_t",
+            "id": 3,
+            "fields": [
+                [
+                    "version",
+                    4
+                ],
+                [
+                    "ihl",
+                    4
+                ],
+                [
+                    "diffserv",
+                    8
+                ],
+                [
+                    "ipv4_length",
+                    16
+                ],
+                [
+                    "id",
+                    16
+                ],
+                [
+                    "flags",
+                    3
+                ],
+                [
+                    "offset",
+                    13
+                ],
+                [
+                    "ttl",
+                    8
+                ],
+                [
+                    "protocol",
+                    8
+                ],
+                [
+                    "checksum",
+                    16
+                ],
+                [
+                    "srcAddr",
+                    32
+                ],
+                [
+                    "dstAddr",
+                    32
+                ]
+            ]
+        },
+        {
+            "name": "ingress_metadata_t",
+            "id": 4,
+            "fields": [
+                [
+                    "packet_hit",
+                    1
+                ],
+                [
+                    "nhop",
+                    16
+                ],
+                [
+                    "_padding",
+                    7
+                ]
+            ]
+        }
+    ],
+    "headers": [
+        {
+            "name": "standard_metadata",
+            "id": 0,
+            "header_type": "standard_metadata_t"
+        },
+        {
+            "name": "eth",
+            "id": 1,
+            "header_type": "ethernet_t"
+        },
+        {
+            "name": "vlan",
+            "id": 2,
+            "header_type": "vlan_t"
+        },
+        {
+            "name": "ipv4",
+            "id": 3,
+            "header_type": "ipv4_t"
+        },
+        {
+            "name": "md",
+            "id": 4,
+            "header_type": "ingress_metadata_t"
+        }
+    ],
+    "parsers": [
+        {
+            "name": "parser",
+            "id": 0,
+            "init_state": "start",
+            "parse_states": [
+                {
+                    "name": "start",
+                    "id": 0,
+                    "extracts": [],
+                    "sets": [],
+                    "transition_key": [],
+                    "transitions": [
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": "parse_eth"
+                        }
+                    ]
+                },
+                {
+                    "name": "parse_eth",
+                    "id": 1,
+                    "extracts": [
+                        "eth"
+                    ],
+                    "sets": [],
+                    "transition_key": [
+                        [
+                            "eth",
+                            "ethType"
+                        ]
+                    ],
+                    "transitions": [
+                        {
+                            "value": "0x8100",
+                            "mask": null,
+                            "next_state": "parse_vlan"
+                        },
+                        {
+                            "value": "0x800",
+                            "mask": null,
+                            "next_state": "parse_ipv4"
+                        },
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                },
+                {
+                    "name": "parse_vlan",
+                    "id": 2,
+                    "extracts": [
+                        "vlan"
+                    ],
+                    "sets": [],
+                    "transition_key": [],
+                    "transitions": [
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                },
+                {
+                    "name": "parse_ipv4",
+                    "id": 3,
+                    "extracts": [
+                        "ipv4"
+                    ],
+                    "sets": [],
+                    "transition_key": [],
+                    "transitions": [
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "deparsers": [
+        {
+            "name": "deparser",
+            "id": 0,
+            "order": [
+                "eth",
+                "ipv4",
+                "vlan"
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "send_to_controller",
+            "id": 0,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_port"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xfa"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "nop",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": []
+        },
+        {
+            "name": "drop_pkt",
+            "id": 2,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "md",
+                                "packet_hit"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
+            "name": "fwd_next_hop",
+            "id": 3,
+            "runtime_data": [
+                {
+                    "name": "port",
+                    "bitwidth": 9
+                }
+            ],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "md",
+                                "packet_hit"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_port"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "vlan_valid",
+            "id": 4,
+            "runtime_data": [],
+            "primitives": []
+        }
+    ],
+    "pipelines": [
+        {
+            "name": "ingress",
+            "id": 0,
+            "init_table": "mac_table",
+            "tables": [
+                {
+                    "name": "mac_table",
+                    "id": 0,
+                    "type": "exact",
+                    "max_size": 1024,
+                    "with_counters": false,
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "eth",
+                                "dstAddr"
+                            ]
+                        }
+                    ],
+                    "actions": [
+                        "drop_pkt",
+                        "nop"
+                    ],
+                    "next_tables": {
+                        "drop_pkt": "vlan_mpls_table",
+                        "nop": "vlan_mpls_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "vlan_mpls_table",
+                    "id": 1,
+                    "type": "exact",
+                    "max_size": 4096,
+                    "with_counters": false,
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "vlan",
+                                "vid"
+                            ]
+                        }
+                    ],
+                    "actions": [
+                        "nop"
+                    ],
+                    "next_tables": {
+                        "nop": "vlan_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "vlan_table",
+                    "id": 2,
+                    "type": "exact",
+                    "max_size": 4096,
+                    "with_counters": false,
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "vlan",
+                                "vid"
+                            ]
+                        }
+                    ],
+                    "actions": [
+                        "drop_pkt",
+                        "vlan_valid"
+                    ],
+                    "next_tables": {
+                        "drop_pkt": "mpls_table",
+                        "vlan_valid": "mpls_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "mpls_table",
+                    "id": 3,
+                    "type": "exact",
+                    "max_size": 1024,
+                    "with_counters": false,
+                    "key": [],
+                    "actions": [
+                        "nop"
+                    ],
+                    "next_tables": {
+                        "nop": "ether_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "ether_table",
+                    "id": 4,
+                    "type": "exact",
+                    "max_size": 256,
+                    "with_counters": false,
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "eth",
+                                "ethType"
+                            ]
+                        }
+                    ],
+                    "actions": [
+                        "drop_pkt",
+                        "nop",
+                        "send_to_controller"
+                    ],
+                    "next_tables": {
+                        "drop_pkt": "cos_map_table",
+                        "nop": "cos_map_table",
+                        "send_to_controller": "cos_map_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "local_table",
+                    "id": 5,
+                    "type": "exact",
+                    "max_size": 256,
+                    "with_counters": false,
+                    "key": [],
+                    "actions": [
+                        "nop",
+                        "send_to_controller"
+                    ],
+                    "next_tables": {
+                        "nop": null,
+                        "send_to_controller": null
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "fib_table",
+                    "id": 6,
+                    "type": "ternary",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "key": [
+                        {
+                            "match_type": "ternary",
+                            "target": [
+                                "ipv4",
+                                "dstAddr"
+                            ]
+                        }
+                    ],
+                    "actions": [
+                        "drop_pkt",
+                        "fwd_next_hop"
+                    ],
+                    "next_tables": {
+                        "drop_pkt": "local_table",
+                        "fwd_next_hop": "local_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "cos_map_table",
+                    "id": 7,
+                    "type": "exact",
+                    "max_size": 256,
+                    "with_counters": false,
+                    "key": [],
+                    "actions": [
+                        "nop"
+                    ],
+                    "next_tables": {
+                        "nop": "fib_table"
+                    },
+                    "default_action": null
+                }
+            ],
+            "conditionals": []
+        },
+        {
+            "name": "egress",
+            "id": 1,
+            "init_table": null,
+            "tables": [],
+            "conditionals": []
+        }
+    ],
+    "checksums": [
+        {
+            "name": "ipv4.checksum",
+            "id": 0,
+            "target": [
+                "ipv4",
+                "checksum"
+            ],
+            "type": "ipv4"
+        }
+    ],
+    "learn_lists": []
+}

@@ -10,11 +10,13 @@ MatchTableAbstract::lookup_action(const Packet &pkt)
   lookup(pkt, &action_entry, &handle);
   if(action_entry) {
     // ELOGGER->table_hit(*pkt, *this, *entry);
+printf("hit\n");
     if(with_counters) update_counters(handle, pkt);
     return *action_entry;
   }
   else {
     // ELOGGER->table_miss(*pkt, *this);
+printf("miss\n");
     return default_entry;
   }
 }

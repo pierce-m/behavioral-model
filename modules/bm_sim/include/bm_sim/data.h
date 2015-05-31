@@ -101,7 +101,7 @@ public:
   }
 
   int get_int() const {
-    assert(arith);
+//    assert(arith);
     // Bad ?
     return (int) value;
   }
