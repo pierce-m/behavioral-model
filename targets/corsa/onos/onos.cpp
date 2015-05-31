@@ -38,13 +38,15 @@ void corsa_set_default_tables(p4_pd_sess_hdl_t sess_hdl,
     p4_pd_corsa_vlan_mpls_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
-    p4_pd_corsa_vlan_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
+//    p4_pd_corsa_vlan_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
+    p4_pd_corsa_vlan_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
     p4_pd_corsa_mpls_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
-    p4_pd_corsa_ether_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
+//    p4_pd_corsa_ether_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
+    p4_pd_corsa_ether_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
     p4_pd_corsa_cos_map_table_set_default_action_nop(sess_hdl, dev_tgt,
@@ -54,7 +56,8 @@ void corsa_set_default_tables(p4_pd_sess_hdl_t sess_hdl,
     p4_pd_corsa_fib_table_set_default_action_nop(sess_hdl, dev_tgt,
             &entry_hdl);
 
-    p4_pd_corsa_local_table_set_default_action_nop(sess_hdl, dev_tgt,
+//    p4_pd_corsa_local_table_set_default_action_nop(sess_hdl, dev_tgt,
+    p4_pd_corsa_local_table_set_default_action_send_to_controller(sess_hdl, dev_tgt,
             &entry_hdl);
 }
 

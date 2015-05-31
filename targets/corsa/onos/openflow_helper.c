@@ -12,18 +12,6 @@
 #include <SocketManager/socketmanager.h>
 #include <OFStateManager/ofstatemanager.h>
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <linux/if.h>
-#include <linux/if_tun.h>
-#include <arpa/inet.h>
-#include <linux/if_packet.h>
 #include <pthread.h>
 
 
@@ -939,4 +927,118 @@ int openflow_setup(int argc, char* argv[])
     return 0;
 }
 
+
+#if 1
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#include <arpa/inet.h>
+#include <linux/if_packet.h>
+// CPU port handler
+pthread_t cpu_handler_thread;
+
+static const char *cpu_port="veth251";
+static int cpu_port_fd;
+static int cpu_port_index;
+
+static void handle_cpu_packet()
+{
+    int ret, fd, i;
+    static char in_buf[10000];
+//    static char out_buf[10000];
+
+    // read packet from cpu port
+    fd = cpu_port_fd;
+    while((ret = read(fd, in_buf, sizeof(in_buf))) > 0) {
+        if (1) {
+            for(i = 0; i < ret;) {
+                printf("%02X", (unsigned char)in_buf[i]);
+                i++;
+                if (i && ((i % 16) == 0))  {
+                    printf("\n");
+                } else if (i && ((i % 8) == 0)) {
+                    printf("  ");
+                } else {
+                    printf(" ");
+                }
+            }
+            printf("\n\n");
+        }
+    }
+}
+void *cpu_packet_handler(void *arg)
+{
+    // initialize raw socket
+    if ((cpu_port_fd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+        perror("failed to open raw socket");
+        exit(1);
+    }
+
+    // initialize cpu port
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, cpu_port, 8);
+    if (ioctl(cpu_port_fd, SIOCGIFINDEX, (void *)&ifr) < 0) {
+        perror("failed to get ifindex of cpu interface");
+        exit(1);
+    }
+    cpu_port_index = ifr.ifr_ifindex;
+
+    // bind to cpu port
+    struct sockaddr_ll addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sll_family = AF_PACKET;
+    addr.sll_ifindex = cpu_port_index;
+    addr.sll_protocol = htons(ETH_P_ALL);
+    if (bind(cpu_port_fd, (struct sockaddr *)&addr,
+             sizeof(struct sockaddr_ll)) < 0) {
+        perror("bind to cpu interface failed");
+        exit(1);
+    }
+
+    // set cpu port to be non-blocking
+    int sock_flags = fcntl(cpu_port_fd, F_GETFL, 0);
+    if (fcntl(cpu_port_fd, F_SETFL, sock_flags | O_NONBLOCK) < 0) {
+        perror("f_setfl on cpu interface failed");
+        exit(1);
+    }
+
+
+    // loop to get CPU packets and Punt to controller
+
+    while(1) {
+        int ret, nfds = -1;
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(cpu_port_fd, &read_fds);
+        nfds++;
+
+        ret = select(nfds, &read_fds, NULL, NULL, NULL);
+        if (ret == -1) {
+            perror("select");
+            return NULL;
+        } else if (ret == 0) {
+        } else {
+            if (FD_ISSET(cpu_port_fd, &read_fds)) {
+                handle_cpu_packet();
+            }
+        }
+    }
+}
+
+
+void start_cpu_packet_handler()
+{
+    pthread_create(&cpu_handler_thread, NULL,
+                       cpu_packet_handler, NULL);
+}
+
+#endif
 
