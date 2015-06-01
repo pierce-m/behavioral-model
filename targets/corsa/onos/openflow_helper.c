@@ -71,6 +71,20 @@ struct corsa_table {
 
 struct corsa_table my_table[MAX_NUM_TABLES];
 
+const char *table_name[] = {
+    "MAC",
+    "MPLS_VLAN",
+    "VLAN",
+    "MPLS",
+    "ETHER",
+    "COS_MAP",
+    "FIB",
+    "UNK1",
+    "UNK2",
+    "LOCAL",
+    ""
+};
+
 static void print_match_fields(int table_id, of_match_t *match)
 {
     switch(table_id) {
@@ -126,7 +140,7 @@ void process_action(of_object_t *inst, int *cmd, int *param)
             {
                 uint8_t table_id;
                 of_instruction_goto_table_table_id_get( inst, &table_id);
-                printf("Goto table %d\n", table_id);
+                printf("Goto table %s[%d]\n", table_name[table_id], table_id);
                 *cmd = GOTO;
             }
             break;
@@ -291,7 +305,7 @@ op_entry_create(void *table_priv, indigo_cxn_id_t cxn_id,
     if(!table) {
         return -1;
     }
-    printf(" on table %d\n", table->table_id);
+    printf(" on table %s\n", table_name[table->table_id]);
     *entry_priv = NULL;
     if (of_flow_add_match_get(obj, &match) < 0) {
         printf("unexpected failure in of_flow_add_match_get");
@@ -324,7 +338,7 @@ op_entry_modify(void *table_priv, indigo_cxn_id_t cxn_id,
     struct corsa_table *table = (struct corsa_table *)table_priv;
     if(!table)
         return -1;
-    printf("\nflow modify called on table %d\n", table->table_id);
+    printf("\nflow modify called on table %s\n", table_name[table->table_id]);
     if (of_flow_add_match_get(obj, &match) < 0) {
         printf("unexpected failure in of_flow_add_match_get");
         return -1;
@@ -354,7 +368,7 @@ op_entry_delete(void *table_priv, indigo_cxn_id_t cxn_id,
     struct corsa_table *table = (struct corsa_table *)table_priv;
     if(!table)
         return -1;
-    printf("\nflow delete called\n");
+    printf("\nflow delete called %s\n", table_name[table->table_id]);
     table_op(DEL, table->table_id, &match, 0, cmd, param, &entry_priv);
     memset(flow_stats, 0, sizeof(*flow_stats));
     return INDIGO_ERROR_NONE;

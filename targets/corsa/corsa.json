@@ -277,8 +277,37 @@
     ],
     "actions": [
         {
-            "name": "drop_pkt",
+            "name": "nop",
             "id": 0,
+            "runtime_data": [],
+            "primitives": []
+        },
+        {
+            "name": "send_to_controller",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_port"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7d"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "drop_pkt",
+            "id": 2,
             "runtime_data": [],
             "primitives": [
                 {
@@ -305,7 +334,7 @@
         },
         {
             "name": "write_mac",
-            "id": 1,
+            "id": 3,
             "runtime_data": [
                 {
                     "name": "mac",
@@ -333,7 +362,7 @@
         },
         {
             "name": "fwd_next_hop",
-            "id": 2,
+            "id": 4,
             "runtime_data": [
                 {
                     "name": "port",
@@ -377,35 +406,6 @@
         },
         {
             "name": "vlan_valid",
-            "id": 3,
-            "runtime_data": [],
-            "primitives": []
-        },
-        {
-            "name": "send_to_controller",
-            "id": 4,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_port"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0x7d"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "nop",
             "id": 5,
             "runtime_data": [],
             "primitives": []
