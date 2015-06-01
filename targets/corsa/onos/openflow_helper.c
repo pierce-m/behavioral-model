@@ -897,6 +897,8 @@ int openflow_setup(int argc, char* argv[])
         my_table[i].table_id = i;
     }
 
+    ind_core_enable_set(1);
+
     indigo_core_table_register(0, "mac_table", &mac_table_ops, &my_table[0]);
     indigo_core_table_register(1, "vlan_mpls_table", &vlan_mpls_table_ops, &my_table[1]);
     indigo_core_table_register(2, "vlan_table", &vlan_table_ops, &my_table[2]);
@@ -951,13 +953,13 @@ static int cpu_port_index;
 static void handle_cpu_packet()
 {
     int ret, fd, i;
-    static char in_buf[10000];
-//    static char out_buf[10000];
+    static unsigned char in_buf[10000];
+    static unsigned char out_buf[10000];
 
     // read packet from cpu port
     fd = cpu_port_fd;
     while((ret = read(fd, in_buf, sizeof(in_buf))) > 0) {
-        if (1) {
+        if (0) {
             for(i = 0; i < ret;) {
                 printf("%02X", (unsigned char)in_buf[i]);
                 i++;
@@ -970,6 +972,20 @@ static void handle_cpu_packet()
                 }
             }
             printf("\n\n");
+        }
+        // copy from in_buf to out_buf and set ret to length valid in out_buf
+        memcpy(out_buf, in_buf, ret); // TODO skip cpu header  later
+        {
+            of_packet_in_t *packet_in = of_packet_in_new(OF_VERSION_1_0);
+            of_octets_t octets = {.data = out_buf, .bytes = ret};
+            of_packet_in_xid_set(packet_in, 0xfffffffe);
+            of_packet_in_buffer_id_set(packet_in, 0x1234);
+            of_packet_in_total_len_set(packet_in, ret);
+            of_packet_in_in_port_set(packet_in, 1);
+
+            int val = of_packet_in_data_set(packet_in, &octets);
+            if(val == 0)
+                indigo_core_packet_in(packet_in);
         }
     }
 }
@@ -984,7 +1000,7 @@ void *cpu_packet_handler(void *arg)
     // initialize cpu port
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, cpu_port, 8);
+    strncpy(ifr.ifr_name, cpu_port, 9);
     if (ioctl(cpu_port_fd, SIOCGIFINDEX, (void *)&ifr) < 0) {
         perror("failed to get ifindex of cpu interface");
         exit(1);
@@ -1014,13 +1030,13 @@ void *cpu_packet_handler(void *arg)
     // loop to get CPU packets and Punt to controller
 
     while(1) {
-        int ret, nfds = -1;
+        int ret, nfds = 0;
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(cpu_port_fd, &read_fds);
         nfds++;
 
-        ret = select(nfds, &read_fds, NULL, NULL, NULL);
+        ret = select(cpu_port_fd+1, &read_fds, NULL, NULL, NULL);
         if (ret == -1) {
             perror("select");
             return NULL;
