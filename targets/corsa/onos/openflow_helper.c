@@ -131,7 +131,17 @@ typedef enum {
     SET_FIELD
 } table_cmd_t;
 
-void process_action(of_object_t *inst, int *cmd, int *param)
+
+const char *cmd_name[] = {
+    "NONE",
+    "DROP",
+    "GOTO",
+    "OUTPUT",
+    "SET_FIELD",
+    ""
+};
+
+void process_action(of_object_t *inst, table_cmd_t *cmd, int *param)
 {
     *cmd = DROP;
     //    printf("Instr: %d\n", inst->object_id);
@@ -209,14 +219,14 @@ extern void ether_table_add(uint16_t ethtype, uint16_t ethtype_mask, int pri, in
 extern void ether_table_mod(void *entry, int cmd);
 
 
-extern void fib_table_add(uint32_t ipv4, uint32_t ipv4_mask, int pri, int cmd, int port, void **entry);
+extern void fib_table_add(uint32_t ipv4, uint32_t ipv4_mask, int eth_type,  int pri, int cmd, int port, void **entry);
 extern void fib_table_mod(void *entry, int cmd, int param);
 
 
 
 void table_op(table_ops_t op, int table, of_match_t *match, int pri, int cmd, int param, void **entry)
 {
-    printf("Table OP %s CMD %d\n", (op == ADD) ? "ADD" : (op==MOD) ? "MOD" : "DEL", cmd);
+    printf("Table %s action %s\n", (op == ADD) ? "ADD" : (op==MOD) ? "MOD" : "DEL", cmd_name[cmd]);
     switch(table) {
         case 0: // mac
             switch(op) {
@@ -262,7 +272,7 @@ void table_op(table_ops_t op, int table, of_match_t *match, int pri, int cmd, in
         case 6: // fib
             switch(op) {
                 case ADD:
-                    fib_table_add(match->fields.ipv4_dst, match->masks.ipv4_dst, pri, cmd, param, entry);
+                    fib_table_add(match->fields.ipv4_dst, match->masks.ipv4_dst, match->fields.eth_type, pri, cmd, param, entry);
                     break;
                 case MOD:
                     fib_table_mod(*entry, cmd, param);
@@ -319,7 +329,8 @@ op_entry_create(void *table_priv, indigo_cxn_id_t cxn_id,
     of_flow_add_instructions_bind(obj, &instructions); 
     of_object_t inst; 
     int loop_rv; 
-    int cmd=DROP, param;
+    table_cmd_t cmd=DROP;
+    int param;
 
     OF_LIST_INSTRUCTION_ITER(&instructions, &inst, loop_rv) { 
         process_action(&inst, &cmd, &param);
@@ -338,7 +349,7 @@ op_entry_modify(void *table_priv, indigo_cxn_id_t cxn_id,
     struct corsa_table *table = (struct corsa_table *)table_priv;
     if(!table)
         return -1;
-    printf("\nflow modify called on table %s\n", table_name[table->table_id]);
+    printf("\nflow modify on table %s\n", table_name[table->table_id]);
     if (of_flow_add_match_get(obj, &match) < 0) {
         printf("unexpected failure in of_flow_add_match_get");
         return -1;
@@ -348,7 +359,8 @@ op_entry_modify(void *table_priv, indigo_cxn_id_t cxn_id,
     of_flow_modify_instructions_bind(obj, &instructions); 
     of_object_t inst; 
     int loop_rv; 
-    int cmd=DROP, param;
+    table_cmd_t cmd=DROP;
+    int param;
 
     OF_LIST_INSTRUCTION_ITER(&instructions, &inst, loop_rv) { 
         process_action(&inst, &cmd, &param);
@@ -368,7 +380,7 @@ op_entry_delete(void *table_priv, indigo_cxn_id_t cxn_id,
     struct corsa_table *table = (struct corsa_table *)table_priv;
     if(!table)
         return -1;
-    printf("\nflow delete called %s\n", table_name[table->table_id]);
+    printf("\nflow delete %s\n", table_name[table->table_id]);
     table_op(DEL, table->table_id, &match, 0, cmd, param, &entry_priv);
     memset(flow_stats, 0, sizeof(*flow_stats));
     return INDIGO_ERROR_NONE;
@@ -995,7 +1007,7 @@ static void handle_cpu_packet()
             of_packet_in_xid_set(packet_in, 0xfffffffe);
             of_packet_in_buffer_id_set(packet_in, 0x1234);
             of_packet_in_total_len_set(packet_in, ret);
-            of_packet_in_in_port_set(packet_in, 1);
+            of_packet_in_in_port_set(packet_in, 1); // derive from packet in_buf
 
             int val = of_packet_in_data_set(packet_in, &octets);
             if(val == 0)

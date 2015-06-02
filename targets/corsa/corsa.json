@@ -131,24 +131,6 @@
                     32
                 ]
             ]
-        },
-        {
-            "name": "ingress_metadata_t",
-            "id": 4,
-            "fields": [
-                [
-                    "packet_hit",
-                    1
-                ],
-                [
-                    "nhop",
-                    16
-                ],
-                [
-                    "_padding",
-                    7
-                ]
-            ]
         }
     ],
     "headers": [
@@ -171,11 +153,6 @@
             "name": "ipv4",
             "id": 3,
             "header_type": "ipv4_t"
-        },
-        {
-            "name": "md",
-            "id": 4,
-            "header_type": "ingress_metadata_t"
         }
     ],
     "parsers": [
@@ -270,21 +247,77 @@
             "id": 0,
             "order": [
                 "eth",
-                "ipv4",
-                "vlan"
+                "vlan",
+                "ipv4"
             ]
         }
     ],
     "actions": [
         {
-            "name": "nop",
+            "name": "vlan_mpls_miss",
             "id": 0,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
+            "name": "vlan_miss",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
+            "name": "nop",
+            "id": 2,
             "runtime_data": [],
             "primitives": []
         },
         {
+            "name": "vlan_valid",
+            "id": 3,
+            "runtime_data": [],
+            "primitives": []
+        },
+        {
+            "name": "mac_hit",
+            "id": 4,
+            "runtime_data": [],
+            "primitives": []
+        },
+        {
+            "name": "mac_miss",
+            "id": 5,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
+            "name": "drop_pkt",
+            "id": 6,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
             "name": "send_to_controller",
-            "id": 1,
+            "id": 7,
             "runtime_data": [],
             "primitives": [
                 {
@@ -306,39 +339,16 @@
             ]
         },
         {
-            "name": "drop_pkt",
-            "id": 2,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "md",
-                                "packet_hit"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0x0"
-                        }
-                    ]
-                },
-                {
-                    "op": "drop",
-                    "parameters": []
-                }
-            ]
-        },
-        {
             "name": "write_mac",
-            "id": 3,
+            "id": 8,
             "runtime_data": [
                 {
                     "name": "mac",
                     "bitwidth": 48
+                },
+                {
+                    "name": "port",
+                    "bitwidth": 9
                 }
             ],
             "primitives": [
@@ -357,34 +367,6 @@
                             "value": 0
                         }
                     ]
-                }
-            ]
-        },
-        {
-            "name": "fwd_next_hop",
-            "id": 4,
-            "runtime_data": [
-                {
-                    "name": "port",
-                    "bitwidth": 9
-                }
-            ],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "md",
-                                "packet_hit"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0x1"
-                        }
-                    ]
                 },
                 {
                     "op": "modify_field",
@@ -398,15 +380,15 @@
                         },
                         {
                             "type": "runtime_data",
-                            "value": 0
+                            "value": 1
                         }
                     ]
                 }
             ]
         },
         {
-            "name": "vlan_valid",
-            "id": 5,
+            "name": "mpls_process",
+            "id": 9,
             "runtime_data": [],
             "primitives": []
         }
@@ -433,12 +415,12 @@
                         }
                     ],
                     "actions": [
-                        "drop_pkt",
-                        "nop"
+                        "mac_miss",
+                        "mac_hit"
                     ],
                     "next_tables": {
-                        "drop_pkt": "vlan_mpls_table",
-                        "nop": "vlan_mpls_table"
+                        "mac_miss": "local_table",
+                        "mac_hit": "vlan_mpls_table"
                     },
                     "default_action": null
                 },
@@ -458,9 +440,13 @@
                         }
                     ],
                     "actions": [
+                        "vlan_mpls_miss",
+                        "mpls_process",
                         "nop"
                     ],
                     "next_tables": {
+                        "vlan_mpls_miss": "local_table",
+                        "mpls_process": "mpls_table",
                         "nop": "vlan_table"
                     },
                     "default_action": null
@@ -481,14 +467,14 @@
                         }
                     ],
                     "actions": [
-                        "drop_pkt",
+                        "vlan_miss",
                         "vlan_valid",
                         "nop"
                     ],
                     "next_tables": {
-                        "drop_pkt": "mpls_table",
-                        "vlan_valid": "mpls_table",
-                        "nop": "mpls_table"
+                        "vlan_miss": "local_table",
+                        "vlan_valid": "ether_table",
+                        "nop": "local_table"
                     },
                     "default_action": null
                 },
@@ -503,7 +489,7 @@
                         "nop"
                     ],
                     "next_tables": {
-                        "nop": "ether_table"
+                        "nop": "local_table"
                     },
                     "default_action": null
                 },
@@ -523,29 +509,68 @@
                         }
                     ],
                     "actions": [
-                        "drop_pkt",
                         "nop",
+                        "drop_pkt",
                         "send_to_controller"
                     ],
                     "next_tables": {
-                        "drop_pkt": "cos_map_table",
                         "nop": "cos_map_table",
-                        "send_to_controller": "cos_map_table"
+                        "drop_pkt": "local_table",
+                        "send_to_controller": "local_table"
+                    },
+                    "default_action": null
+                },
+                {
+                    "name": "fib_table",
+                    "id": 5,
+                    "type": "lpm",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "eth",
+                                "ethType"
+                            ]
+                        },
+                        {
+                            "match_type": "lpm",
+                            "target": [
+                                "ipv4",
+                                "dstAddr"
+                            ]
+                        }
+                    ],
+                    "actions": [
+                        "nop",
+                        "drop_pkt"
+                    ],
+                    "next_tables": {
+                        "nop": "local_table",
+                        "drop_pkt": "local_table"
                     },
                     "default_action": null
                 },
                 {
                     "name": "local_table",
-                    "id": 5,
-                    "type": "exact",
+                    "id": 6,
+                    "type": "lpm",
                     "max_size": 256,
                     "with_counters": false,
                     "key": [
                         {
                             "match_type": "exact",
                             "target": [
-                                "standard_metadata",
-                                "egress_port"
+                                "eth",
+                                "ethType"
+                            ]
+                        },
+                        {
+                            "match_type": "lpm",
+                            "target": [
+                                "ipv4",
+                                "dstAddr"
                             ]
                         }
                     ],
@@ -558,33 +583,6 @@
                         "nop": null,
                         "send_to_controller": null,
                         "write_mac": null
-                    },
-                    "default_action": null
-                },
-                {
-                    "name": "fib_table",
-                    "id": 6,
-                    "type": "lpm",
-                    "max_size": 16384,
-                    "with_counters": false,
-                    "key": [
-                        {
-                            "match_type": "lpm",
-                            "target": [
-                                "ipv4",
-                                "dstAddr"
-                            ]
-                        }
-                    ],
-                    "actions": [
-                        "nop",
-                        "drop_pkt",
-                        "fwd_next_hop"
-                    ],
-                    "next_tables": {
-                        "nop": "local_table",
-                        "drop_pkt": "local_table",
-                        "fwd_next_hop": "local_table"
                     },
                     "default_action": null
                 },

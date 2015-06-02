@@ -94,6 +94,7 @@ header_type udp_t {
 }
 
 header cpu_header_t cpu;
+
 header ethernet_t eth;
 header vlan_t vlan;
 header ipv4_t ipv4;
@@ -125,13 +126,13 @@ calculated_field ipv4.checksum {
     update ipv4_checksum if(ipv4.ihl == 5);
 }
 
+/*
 header_type ingress_metadata_t {
     fields {
-        packet_hit : 1;
-        nhop : 16;
     }
 }
 metadata ingress_metadata_t md;
+*/
 
 /*
   +------------------------------------------- 
@@ -177,20 +178,17 @@ parser parse_ipv4 {
 
 
 action drop_pkt() {
-    modify_field(md.packet_hit, 0);
     drop();
 }
 
 action nop() {
 }
 
-action broadcast_process() {
-}
-
-action unicast_process() {
+action mac_hit() {
 }
 
 action mac_miss() {
+    drop();
 }
 
 table mac_table {
@@ -198,8 +196,8 @@ table mac_table {
         eth.dstAddr : exact;
     }
     actions {
-        drop_pkt; // default action
-        nop;
+        mac_miss; // default action
+        mac_hit;
     }
     size : 1024;
 }
@@ -207,20 +205,28 @@ table mac_table {
 action mpls_process() {
 }
 
+action vlan_mpls_miss() {
+    drop();
+}
+
 table vlan_mpls_table {
     reads  {
         vlan.vid : exact;
     }
     actions {
+        vlan_mpls_miss;
+        mpls_process;
         nop;
     }
     size : 4096;
 }
 
 action vlan_miss() {
+    drop();
 }
 
 action vlan_valid() {
+//    remove_header(vlan);
 }
 
 table vlan_table {
@@ -228,7 +234,7 @@ table vlan_table {
         vlan.vid : exact;
     }
     actions {
-        drop_pkt; // default action
+        vlan_miss; // default action
         vlan_valid;
         nop;
     }
@@ -246,11 +252,6 @@ table mpls_table {
     size : 1024;
 }
 
-action fwd_pkt(port) {
-    // next table
-    modify_field(standard_metadata.egress_port, port);
-}
-
 action send_to_controller() {
     // send to cpu
     modify_field(standard_metadata.egress_port, CPU_PORT);
@@ -262,20 +263,38 @@ table ether_table {
                                 // 0800 -> ip_fwd
     }
     actions {
-        drop_pkt; // default action
         nop;
+        drop_pkt;
         send_to_controller;
     }
     size : 256;
 }
 
-action write_mac(mac) {
+action fwd_next_hop(port) {
+    modify_field(standard_metadata.egress_port, port);
+}
+
+table fib_table {
+    reads {
+        eth.ethType : exact;
+        ipv4.dstAddr : lpm;
+    }
+    actions {
+        nop;
+        drop_pkt;
+    }
+    size : 16384;
+}
+
+action write_mac(mac, port) {
     modify_field(eth.dstAddr, mac);
+    fwd_next_hop(port);
 }
 
 table local_table {
     reads {
-        standard_metadata.egress_port: exact;
+        eth.ethType : exact;
+        ipv4.dstAddr : lpm;
     }
     actions {
         nop;
@@ -283,23 +302,6 @@ table local_table {
         write_mac;
     }
     size : 256;
-}
-
-action fwd_next_hop(port) {
-    modify_field(md.packet_hit, 1);
-    modify_field(standard_metadata.egress_port, port);
-}
-
-table fib_table {
-    reads {
-        ipv4.dstAddr : lpm;
-    }
-    actions {
-        nop;
-        drop_pkt;
-        fwd_next_hop;
-    }
-    size : 16384;
 }
 
 table cos_map_table {
@@ -310,13 +312,30 @@ table cos_map_table {
 }
 
 control ingress {
-    apply(mac_table);
-    apply(vlan_mpls_table);
-    apply(vlan_table);
-    apply(mpls_table);
-    apply(ether_table);
-    apply(cos_map_table);
-    apply(fib_table);
+    apply(mac_table) {
+        mac_hit {
+            apply(vlan_mpls_table) {
+                mpls_process {
+                    apply(mpls_table);
+                }
+                nop {
+                    apply(vlan_table) {
+                        vlan_valid {
+                            apply(ether_table) {
+                                nop {
+                                    apply(cos_map_table) {
+                                        nop {
+                                            apply(fib_table);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     apply(local_table);
 }
 
