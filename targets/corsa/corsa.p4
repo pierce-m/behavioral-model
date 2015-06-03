@@ -311,7 +311,31 @@ table cos_map_table {
     size: 256;
 }
 
+action fwd_to_port(port) {
+    modify_field(standard_metadata.egress_port, port);
+}
+
+
+counter dmac_stats {
+    type : packets_and_bytes;
+    direct : dmac_table;
+}
+
+table dmac_table {
+    reads {
+//        eth.ethType : exact;
+        eth.dstAddr : exact;
+        eth.srcAddr : exact;
+    }
+    actions {
+        send_to_controller;
+        fwd_to_port;
+    }
+    size : 1024;
+}
+
 control ingress {
+#if 0
     apply(mac_table) {
         mac_hit {
             apply(vlan_mpls_table) {
@@ -337,6 +361,8 @@ control ingress {
         }
     }
     apply(local_table);
+#endif
+    apply(dmac_table);
 }
 
 
