@@ -184,6 +184,9 @@ action drop_pkt() {
 action nop() {
 }
 
+action table_hit() {
+}
+
 action mac_hit() {
 }
 
@@ -217,6 +220,7 @@ table vlan_mpls_table {
         vlan_mpls_miss;
         mpls_process;
         nop;
+        table_hit;
     }
     size : 4096;
 }
@@ -226,7 +230,7 @@ action vlan_miss() {
 }
 
 action vlan_valid() {
-//    remove_header(vlan);
+    remove_header(vlan);
 }
 
 table vlan_table {
@@ -237,6 +241,7 @@ table vlan_table {
         vlan_miss; // default action
         vlan_valid;
         nop;
+        table_hit;
     }
     size : 4096;
 }
@@ -263,6 +268,7 @@ table ether_table {
                                 // 0800 -> ip_fwd
     }
     actions {
+        table_hit;
         nop;
         drop_pkt;
         send_to_controller;
@@ -280,6 +286,7 @@ table fib_table {
         ipv4.dstAddr : lpm;
     }
     actions {
+        table_hit;
         nop;
         drop_pkt;
     }
@@ -297,6 +304,7 @@ table local_table {
         ipv4.dstAddr : lpm;
     }
     actions {
+        table_hit;
         nop;
         send_to_controller;
         write_mac;
@@ -306,6 +314,7 @@ table local_table {
 
 table cos_map_table {
     actions {
+        table_hit;
         nop;
     }
     size: 256;
@@ -314,7 +323,6 @@ table cos_map_table {
 action fwd_to_port(port) {
     modify_field(standard_metadata.egress_port, port);
 }
-
 
 counter dmac_stats {
     type : packets_and_bytes;
@@ -342,13 +350,13 @@ control ingress {
                 mpls_process {
                     apply(mpls_table);
                 }
-                nop {
+                table_hit {
                     apply(vlan_table) {
                         vlan_valid {
                             apply(ether_table) {
-                                nop {
+                                table_hit {
                                     apply(cos_map_table) {
-                                        nop {
+                                        table_hit {
                                             apply(fib_table);
                                         }
                                     }
@@ -361,8 +369,9 @@ control ingress {
         }
     }
     apply(local_table);
-#endif
+#else
     apply(dmac_table);
+#endif
 }
 
 

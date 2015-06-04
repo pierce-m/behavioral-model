@@ -47,6 +47,7 @@ cxn_status_change(indigo_cxn_id_t cxn_id,
 static indigo_cxn_protocol_params_t protocol_params;
 static indigo_cxn_config_params_t config_params;
 
+extern void ind_core_flow_delete_handler(of_object_t *obj, indigo_cxn_id_t cxn_id);
 extern void ind_core_flow_add_handler(
         of_object_t *_obj,
         indigo_cxn_id_t cxn);
@@ -92,9 +93,10 @@ static void print_match_fields(int table_id, of_match_t *match)
             printf("DMAC %02x:%02x:%02x:%02x:%02x:%02x ",
                     match->fields.eth_dst.addr[0],match->fields.eth_dst.addr[1],match->fields.eth_dst.addr[2],match->fields.eth_dst.addr[3],match->fields.eth_dst.addr[4],match->fields.eth_dst.addr[5]);
 
-            printf("DMAC mask %02x:%02x:%02x:%02x:%02x:%02x\n",
-                    match->masks.eth_dst.addr[0],match->masks.eth_dst.addr[1],match->masks.eth_dst.addr[2],match->masks.eth_dst.addr[3],match->masks.eth_dst.addr[4],match->masks.eth_dst.addr[5]);
+            printf("SMAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+                    match->fields.eth_src.addr[0],match->fields.eth_src.addr[1],match->fields.eth_src.addr[2],match->fields.eth_src.addr[3],match->fields.eth_src.addr[4],match->fields.eth_src.addr[5]);
 
+            printf("Eth type %d\n", match->fields.eth_type);
             break;
         case 1: // VLAN MPLS
         case 2: // VLAN
@@ -209,6 +211,10 @@ extern void table_delete(void *entry);
 extern void local_table_add(void **entry);
 extern void local_table_mod(void *entry);
 
+extern void dmac_table_add(uint16_t ethtype, uint8_t *dmac, uint8_t *smac, int pri, int cmd, int port, void **entry);
+
+extern void dmac_table_mod(void *entry, int cmd, int port);
+
 extern void mac_table_add(uint8_t *mac, uint8_t *mac_mask, int pri, int cmd, void **entry);
 extern void mac_table_mod(void *entry, int cmd);
 
@@ -227,6 +233,7 @@ extern void fib_table_mod(void *entry, int cmd, int param);
 void table_op(table_ops_t op, int table, of_match_t *match, int pri, int cmd, int param, void **entry)
 {
     printf("Table %s action %s\n", (op == ADD) ? "ADD" : (op==MOD) ? "MOD" : "DEL", cmd_name[cmd]);
+#if 0
     switch(table) {
         case 0: // mac
             switch(op) {
@@ -300,6 +307,19 @@ void table_op(table_ops_t op, int table, of_match_t *match, int pri, int cmd, in
         default:
             break;
     }
+#endif
+        int port = param;
+            switch(op) {
+                case ADD:
+                    dmac_table_add(match->fields.eth_type, match->fields.eth_dst.addr, match->fields.eth_src.addr, pri, cmd, port, entry);
+                    break;
+                case MOD:
+                    dmac_table_mod(*entry, cmd, port);
+                    break;
+                case DEL:
+                    table_delete(*entry);
+                    break;
+            }
 }
 
 
@@ -349,7 +369,7 @@ op_entry_modify(void *table_priv, indigo_cxn_id_t cxn_id,
     struct corsa_table *table = (struct corsa_table *)table_priv;
     if(!table)
         return -1;
-    printf("\nflow modify on table %s\n", table_name[table->table_id]);
+    printf("\nflow modify on table %s entry %d\n", table_name[table->table_id], (int)(*(int *)entry_priv));
     if (of_flow_add_match_get(obj, &match) < 0) {
         printf("unexpected failure in of_flow_add_match_get");
         return -1;
@@ -386,12 +406,19 @@ op_entry_delete(void *table_priv, indigo_cxn_id_t cxn_id,
     return INDIGO_ERROR_NONE;
 }
 
+extern void get_table_counter(int table, uint64_t *packets, uint64_t *bytes,
+     void **entry_hdl);
+
     static indigo_error_t
 op_entry_stats_get(void *table_priv, indigo_cxn_id_t cxn_id,
         void *entry_priv, indigo_fi_flow_stats_t *flow_stats)
 {
+    struct corsa_table *table = (struct corsa_table *)table_priv;
+    if(!table)
+        return -1;
     //    printf("\nflow stats get called\n");
-    memset(flow_stats, 0, sizeof(*flow_stats));
+//    memset(flow_stats, 0, sizeof(*flow_stats));
+    get_table_counter(table->table_id, &(flow_stats->packets), &(flow_stats->bytes), &entry_priv);
     return INDIGO_ERROR_NONE;
 }
 
@@ -789,6 +816,11 @@ cxn_msg_rx(indigo_cxn_id_t cxn_id, of_object_t *obj)
                 ind_core_flow_add_handler(obj, cxn_id);
             }
             break;
+        case OF_FLOW_DELETE:
+            {
+                ind_core_flow_delete_handler(obj, cxn_id);
+            }
+            break;
         case OF_FLOW_STATS_REQUEST:
             ind_core_flow_stats_request_handler(obj, cxn_id);
 #if 0
@@ -870,6 +902,37 @@ cxn_msg_rx(indigo_cxn_id_t cxn_id, of_object_t *obj)
             }
 #endif
             break;
+        case OF_PACKET_OUT:
+            {
+                of_packet_out_t *pack = (of_packet_out_t  *)obj;
+                of_octets_t data;
+                int i; 
+                uint8_t *in_buf;
+                unsigned int port = 0;
+                of_packet_out_data_get(pack, &data);
+                of_packet_out_in_port_get(pack, &port);
+
+                of_packet_out_data_get( pack, &data);
+                in_buf = data.data;
+                if (0) {
+                    printf("data %d on port %d\n", data.bytes, port);
+                    for(i = 0; i < data.bytes;) {
+                        printf("%02X", (unsigned char)in_buf[i]);
+                        i++;
+                        if (i && ((i % 16) == 0))  {
+                            printf("\n");
+                        } else if (i && ((i % 8) == 0)) {
+                            printf("  ");
+                        } else {
+                            printf(" ");
+                        }
+                    }
+                    printf("\n\n");
+                }
+                // send to switch port
+
+            }
+        break;
         default:
             printf("Not supported yet %d\n", obj->object_id);
             break;
@@ -925,6 +988,8 @@ int openflow_setup(int argc, char* argv[])
 
     ind_core_enable_set(1);
 
+    indigo_core_table_register(0, "dmac_table", &mac_table_ops, &my_table[0]);
+    /*
     indigo_core_table_register(0, "mac_table", &mac_table_ops, &my_table[0]);
     indigo_core_table_register(1, "vlan_mpls_table", &vlan_mpls_table_ops, &my_table[1]);
     indigo_core_table_register(2, "vlan_table", &vlan_table_ops, &my_table[2]);
@@ -935,6 +1000,7 @@ int openflow_setup(int argc, char* argv[])
     indigo_core_table_register(7, "unknown1_table", &unknown1_table_ops, &my_table[7]);
     indigo_core_table_register(8, "unknown2_table", &unknown2_table_ops, &my_table[8]);
     indigo_core_table_register(9, "local_table", &local_table_ops, &my_table[9]);
+*/
 
     if(argc > 2) {
         INDIGO_ASSERT((controller_id = setup_cxn(argv[1], atoi(argv[2]))) >= 0);
@@ -975,6 +1041,17 @@ pthread_t cpu_handler_thread;
 static const char *cpu_port="veth251";
 static int cpu_port_fd;
 static int cpu_port_index;
+
+void send_cpu_packet(uint8_t *out_buf, int ret)
+{
+    struct sockaddr_ll addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sll_ifindex = cpu_port_index;
+    if (sendto(cpu_port_fd, out_buf, ret/*+sizeof(meta_hdr)*/, 0,
+                (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("sendto");
+    }
+}
 
 static void handle_cpu_packet()
 {

@@ -247,38 +247,15 @@
             "id": 0,
             "order": [
                 "eth",
-                "ipv4",
-                "vlan"
+                "vlan",
+                "ipv4"
             ]
         }
     ],
     "actions": [
         {
-            "name": "send_to_controller",
-            "id": 0,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_port"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0x7d"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
             "name": "fwd_to_port",
-            "id": 1,
+            "id": 0,
             "runtime_data": [
                 {
                     "name": "port",
@@ -303,6 +280,29 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "send_to_controller",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_port"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7d"
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "pipelines": [
@@ -316,7 +316,7 @@
                     "id": 0,
                     "type": "exact",
                     "max_size": 1024,
-                    "with_counters": true,
+                    "with_counters": false,
                     "key": [
                         {
                             "match_type": "exact",

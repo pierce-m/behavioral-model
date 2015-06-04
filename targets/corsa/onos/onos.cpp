@@ -31,7 +31,7 @@ void corsa_set_default_tables(p4_pd_sess_hdl_t sess_hdl,
         p4_pd_dev_target_t dev_tgt)
 {
     p4_pd_entry_hdl_t entry_hdl;
-
+#if 0
 //    p4_pd_corsa_mac_table_set_default_action_drop_pkt(sess_hdl, dev_tgt,
     p4_pd_corsa_mac_table_set_default_action_mac_miss(sess_hdl, dev_tgt,
             &entry_hdl);
@@ -60,10 +60,63 @@ void corsa_set_default_tables(p4_pd_sess_hdl_t sess_hdl,
 //    p4_pd_corsa_local_table_set_default_action_nop(sess_hdl, dev_tgt,
     p4_pd_corsa_local_table_set_default_action_send_to_controller(sess_hdl, dev_tgt,
             &entry_hdl);
+#endif
+
+    p4_pd_corsa_dmac_table_set_default_action_send_to_controller(sess_hdl, dev_tgt,
+            &entry_hdl);
 }
 
 
 extern "C" {
+    void table_delete(void *entry)
+    {
+//        p4_pd_corsa_dmac_table_table_delete(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)&entry);
+    }
+
+    void dmac_table_add(uint16_t ethtype, uint8_t *dmac, uint8_t *smac, int pri, int cmd, int port, void **entry)
+    {
+        p4_pd_entry_hdl_t entry_hdl;
+        p4_pd_corsa_dmac_table_match_spec_t ms;
+        memset(&ms, 0, sizeof(ms));
+//        ms.eth_ethType = ethtype;
+        memcpy(ms.eth_srcAddr, smac, 6);
+        memcpy(ms.eth_dstAddr, dmac, 6);
+        if(cmd == 1)
+            p4_pd_corsa_dmac_table_table_add_with_send_to_controller(sess_hdl, dev_tgt, &ms, &entry_hdl);
+        else {
+            p4_pd_corsa_fwd_to_port_action_spec_t as;
+            memset(&as, 0, sizeof(as));
+            as.action_port = ntohs((unsigned short)port);
+            printf("PORT = %d\n", port);
+            if(port == -3) {
+                p4_pd_corsa_dmac_table_table_add_with_send_to_controller(sess_hdl, dev_tgt, &ms, &entry_hdl);
+            }
+            else {
+                p4_pd_corsa_dmac_table_table_add_with_fwd_to_port(sess_hdl, dev_tgt, &ms, &as, &entry_hdl);
+                printf("hdl %d\n", entry_hdl);
+            }
+        }
+        *(p4_pd_entry_hdl_t *)(entry) = entry_hdl;
+    }
+
+    void dmac_table_mod(void *entry, int cmd, int port)
+    {
+#if 0
+        if(cmd == 1)
+            p4_pd_corsa_dmac_table_table_modify_with_send_to_controller(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)&entry);
+        else {
+            p4_pd_corsa_fwd_to_port_action_spec_t as;
+            as.action_port = port;
+            if(port == -3) {
+                p4_pd_corsa_dmac_table_table_modify_with_send_to_controller(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)&entry);
+            }
+            else {
+                p4_pd_corsa_dmac_table_table_modify_with_fwd_to_port(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)&entry, &as);
+            }
+        }
+#endif
+    }
+#if 0
     void local_table_add(void **entry)
     {
         p4_pd_entry_hdl_t entry_hdl;
@@ -76,10 +129,6 @@ extern "C" {
     void local_table_mod(void *entry)
     {
         p4_pd_corsa_local_table_table_modify_with_send_to_controller(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)&entry);
-    }
-    void table_delete(void *entry)
-    {
-        p4_pd_corsa_local_table_table_delete(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)&entry);
     }
 
     void mac_table_add(uint8_t *mac, uint8_t *mac_mask, int pri, int cmd, void **entry)
@@ -181,7 +230,18 @@ printf("IP 0x%08x/%d\n", ms.ipv4_dstAddr, ms.ipv4_dstAddr_prefix_length);
             p4_pd_corsa_fib_table_table_modify_with_nop(sess_hdl, dev_tgt.device_id, *(p4_pd_entry_hdl_t *)entry/*, &as*/);
         }
     }
+#endif
 
+    void get_table_counter(int table, uint64_t *packets, uint64_t *bytes,
+    void **entry)
+    { 
+        p4_pd_entry_hdl_t entry_hdl = *(p4_pd_entry_hdl_t *)entry;
+        p4_pd_counter_value_t  counter_value;
+        p4_pd_corsa_dmac_table_read_counter ( sess_hdl, dev_tgt, entry_hdl, &counter_value);
+        *packets = counter_value.packets;
+        *bytes = counter_value.bytes;
+        printf(" hdl %d, Count %ld\n", entry_hdl, (unsigned long)counter_value.packets);
+    }
 }
 
 

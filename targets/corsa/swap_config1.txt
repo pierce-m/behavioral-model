@@ -1,0 +1,2 @@
+load_new_config_file corsa_no_counter.json
+swap_configs 
