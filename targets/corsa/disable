@@ -1,2 +1,4 @@
 load_new_config_file corsa_no_counter.json
+table_add dmac_table fwd_to_port 00:04:00:00:00:01 00:04:00:00:00:00 => 2
+table_add dmac_table fwd_to_port 00:04:00:00:00:00 00:04:00:00:00:01 => 1
 swap_configs 
