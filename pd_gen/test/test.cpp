@@ -1,3 +1,23 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #include <iostream>
 
 #include <thrift_endpoint.h>
@@ -85,6 +105,31 @@ int main() {
   p4_pd_test_ExactOne_set_default_action_actionA(sess_hdl, dev_tgt,
                                                  &actionA_action_spec,
                                                  &entry_hdl);
+
+  /* indirect table */
+
+  p4_pd_mbr_hdl_t mbr_hdl;
+
+  p4_pd_test_ActProf_add_member_with_actionA(sess_hdl, dev_tgt,
+					     &actionA_action_spec,
+					     &mbr_hdl);
+
+  p4_pd_test_ActProf_modify_member_with_actionB(sess_hdl, dev_tgt.device_id,
+						mbr_hdl,
+						&actionB_action_spec);
+
+  p4_pd_test_Indirect_match_spec_t Indirect_match_spec = {0xaabbccdd};
+  p4_pd_test_Indirect_add_entry(sess_hdl, dev_tgt,
+				&Indirect_match_spec, mbr_hdl,
+				&entry_hdl);
+
+  p4_pd_test_Indirect_table_delete(sess_hdl, dev_tgt.device_id, entry_hdl);
+
+  p4_pd_test_Indirect_set_default_entry(sess_hdl, dev_tgt,
+					mbr_hdl, &entry_hdl);
+
+  p4_pd_test_ActProf_del_member(sess_hdl, dev_tgt.device_id, mbr_hdl);
+
 
   /* END TEST */
 

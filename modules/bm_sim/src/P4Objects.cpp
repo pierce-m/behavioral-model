@@ -1,42 +1,28 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #include "bm_sim/P4Objects.h"
 
 using std::unique_ptr;
 
 typedef unsigned char opcode_t;
-
-// std::set<int> P4Objects::build_arith_offsets(const Json::Value &json_actions,
-// 					     const std::string &header_name) {
-//   HeaderType *header_type = header_to_type_map[header_name];
-//   assert(header_type);
-
-//   std::set<int> arith_offset;
-
-//   for (const auto &cfg_action : json_actions) {
-
-//     const Json::Value cfg_primitive_calls = cfg_action["primitives"];
-//     for (const auto &cfg_primitive_call : cfg_primitive_calls) {
-
-//       const Json::Value cfg_primitive_parameters =
-// 	cfg_primitive_call["parameters"];
-//       for(const auto &cfg_parameter : cfg_primitive_parameters) {
-	
-// 	const string type = cfg_parameter["type"].asString();
-// 	if(type != "field") continue;
-
-// 	Json::Value cfg_value_field = cfg_parameter["value"];
-// 	const string header_name_ = cfg_value_field[0].asString();
-// 	if(header_name_ != header_name) continue;
-
-// 	const string field_name = cfg_value_field[1].asString();
-// 	int field_offset = header_type->get_field_offset(field_name);
-	
-// 	arith_offset.insert(field_offset);
-//       }
-//     }
-//   }
-
-//   return arith_offset;
-// }
 
 void P4Objects::build_conditional(const Json::Value &json_expression,
 				  Conditional *conditional) {
@@ -50,7 +36,7 @@ void P4Objects::build_conditional(const Json::Value &json_expression,
 
     build_conditional(json_left, conditional);
     build_conditional(json_right, conditional);
-    
+
     ExprOpcode opcode = ExprOpcodesMap::get_opcode(op);
     conditional->push_back_op(opcode);
   }
@@ -111,10 +97,10 @@ void P4Objects::init_objects(std::istream &is) {
     const string header_name = cfg_header["name"].asString();
     const string header_type_name = cfg_header["header_type"].asString();
     header_id_t header_id = cfg_header["id"].asInt();
-    
+
     HeaderType *header_type = get_header_type(header_type_name);
     header_to_type_map[header_name] = header_type;
-    
+
     // std::set<int> arith_offsets =
     //   build_arith_offsets(cfg_root["actions"], header_name);
 
@@ -156,14 +142,13 @@ void P4Objects::init_objects(std::istream &is) {
       ParseSwitchKeyBuilder key_builder;
       const Json::Value cfg_transition_key = cfg_parse_state["transition_key"];
       for (const auto &cfg_key_field : cfg_transition_key) {
-
 	const string header_name = cfg_key_field[0].asString();
 	header_id_t header_id = get_header_id(header_name);
 	const string field_name = cfg_key_field[1].asString();
 	int field_offset = get_field_offset(header_id, field_name);
 	key_builder.push_back_field(header_id, field_offset);
       }
-      
+
       parse_state->set_key_builder(key_builder);
 
       parse_states.push_back(unique_ptr<ParseState>(parse_state));
@@ -176,7 +161,7 @@ void P4Objects::init_objects(std::istream &is) {
       ParseState *parse_state = current_parse_states[parse_state_name];
       const Json::Value cfg_transitions = cfg_parse_state["transitions"];
       for(const auto &cfg_transition : cfg_transitions) {
-	
+
       	const string value_hexstr = cfg_transition["value"].asString();
       	// ignore mask for now
 	const string next_state_name = cfg_transition["next_state"].asString();
@@ -217,36 +202,14 @@ void P4Objects::init_objects(std::istream &is) {
     add_deparser(deparser_name, unique_ptr<Deparser>(deparser));
   }
 
-  // action primitives' opcodes
-
-  // I decided to get rid of opcodes...
-
-  // std::unordered_map<string, opcode_t> primitive_opcodes;
-  // const Json::Value cfg_primitive_opcodes = cfg_root["primitive_opcodes"];
-  // for (auto it = cfg_primitive_opcodes.begin();
-  //      it != cfg_primitive_opcodes.end(); it++) {
-  //   const string primitive_name = it.key().asString();
-  //   opcode_t opcode = (*it).asInt();
-  //   primitive_opcodes[primitive_name] = opcode;
-  // }
-
   // actions
-  
+
   const Json::Value cfg_actions = cfg_root["actions"];
   for (const auto &cfg_action : cfg_actions) {
 
     const string action_name = cfg_action["name"].asString();
     p4object_id_t action_id = cfg_action["id"].asInt();
     ActionFn *action_fn = new ActionFn(action_name, action_id);
-
-    // This runtime data is only useful for the PD layer
-
-    // const Json::Value cfg_runtime_data = cfg_action["runtime_data"];
-    // for (const auto &cfg_parameter : cfg_runtime_data) {
-      
-    //   const string parameter_name = cfg_parameter["name"].asString();
-    //   int parameter_bitwidth = cfg_parameter["bitwidth"].asInt();
-    // }
 
     const Json::Value cfg_primitive_calls = cfg_action["primitives"];
     for (const auto &cfg_primitive_call : cfg_primitive_calls) {
@@ -261,7 +224,6 @@ void P4Objects::init_objects(std::istream &is) {
       const Json::Value cfg_primitive_parameters =
 	cfg_primitive_call["parameters"];
       for(const auto &cfg_parameter : cfg_primitive_parameters) {
-	
 	const string type = cfg_parameter["type"].asString();
 
 	if(type == "hexstr") {
@@ -302,7 +264,7 @@ void P4Objects::init_objects(std::istream &is) {
     const string first_node_name = cfg_pipeline["init_table"].asString();
 
     // pipelines -> tables
-    
+
     const Json::Value cfg_tables = cfg_pipeline["tables"];
     for (const auto &cfg_table : cfg_tables) {
 
@@ -312,7 +274,7 @@ void P4Objects::init_objects(std::istream &is) {
       MatchKeyBuilder key_builder;
       const Json::Value cfg_match_key = cfg_table["key"];
       for (const auto &cfg_key_entry : cfg_match_key) {
-	
+
 	const string match_type = cfg_key_entry["match_type"].asString();
 	const Json::Value cfg_key_field = cfg_key_entry["target"];
 	if(match_type == "valid") {
@@ -330,21 +292,71 @@ void P4Objects::init_objects(std::istream &is) {
 	}
       }
 
+      const string match_type = cfg_table["match_type"].asString();
       const string table_type = cfg_table["type"].asString();
       const int table_size = cfg_table["max_size"].asInt();
       const bool with_counters = cfg_table["with_counters"].asBool();
       // for now, discard ageing
 
-      std::unique_ptr<MatchActionTable> table =
-	MatchActionTable::create_match_action_table<MatchTable>(
-          table_type, table_name, table_id, table_size, key_builder, with_counters
+      // TODO: improve this to make it easier to create new kind of tables
+      // e.g. like the register mechanism for primitives :)
+      std::unique_ptr<MatchActionTable> table;
+      if(table_type == "simple") {
+	table = MatchActionTable::create_match_action_table<MatchTable>(
+          match_type, table_name, table_id, table_size, key_builder, with_counters
         );
+      }
+      else if(table_type == "indirect") {
+	table = MatchActionTable::create_match_action_table<MatchTableIndirect>(
+          match_type, table_name, table_id, table_size, key_builder, with_counters
+        );
+      }
+      else if(table_type == "indirect_ws") {
+	table = MatchActionTable::create_match_action_table<MatchTableIndirectWS>(
+          match_type, table_name, table_id, table_size, key_builder, with_counters
+        );
+
+	if(!cfg_table.isMember("selector")) {
+	  assert(0 && "indirect_ws tables need to specify a selector");
+	}
+	const Json::Value &cfg_table_selector = cfg_table["selector"];
+	const string selector_algo = cfg_table_selector["algo"].asString();
+	// algo is ignore for now, we always use XXH64
+	(void) selector_algo;
+	const Json::Value &cfg_table_selector_input = cfg_table_selector["input"];
+
+	BufBuilder builder;
+	// TODO: I do this kind of thing in a bunch of places, I need to find a
+	// nicer way
+	for (const auto &cfg_element : cfg_table_selector_input) {
+
+	  const std::string type = cfg_element["type"].asString();
+	  assert(type == "field");  // TODO: other types
+
+	  Json::Value cfg_value_field = cfg_element["value"];
+	  const string header_name = cfg_value_field[0].asString();
+	  header_id_t header_id = get_header_id(header_name);
+	  const string field_name = cfg_value_field[1].asString();
+	  int field_offset = get_field_offset(header_id, field_name);
+	  builder.push_back_field(header_id, field_offset,
+				  get_field_bits(header_id, field_offset));
+	}
+	typedef MatchTableIndirectWS::hash_t hash_t;
+	std::unique_ptr<Calculation<hash_t> > calc(new Calculation<hash_t>(builder));
+	calc->set_compute_fn(hash::xxh64<hash_t>);
+	MatchTableIndirectWS *mt_indirect_ws =
+	  static_cast<MatchTableIndirectWS *>(table->get_match_table());
+	mt_indirect_ws->set_hash(std::move(calc));
+      }
+      else {
+	assert(0 && "invalid table type");
+      }
 
       add_match_action_table(table_name, std::move(table));
     }
 
     // pipelines -> conditionals
-    
+
     const Json::Value cfg_conditionals = cfg_pipeline["conditionals"];
     for (const auto &cfg_conditional : cfg_conditionals) {
 
@@ -388,7 +400,7 @@ void P4Objects::init_objects(std::istream &is) {
 
       const string conditional_name = cfg_conditional["name"].asString();
       Conditional *conditional = get_conditional(conditional_name);
-      
+
       const Json::Value cfg_true_next = cfg_conditional["true_next"];
       const Json::Value cfg_false_next = cfg_conditional["false_next"];
 
@@ -408,10 +420,10 @@ void P4Objects::init_objects(std::istream &is) {
   }
 
   // checksums
-  
+
   const Json::Value cfg_checksums = cfg_root["checksums"];
   for (const auto &cfg_checksum : cfg_checksums) {
-    
+
     const string checksum_name = cfg_checksum["name"].asString();
     p4object_id_t checksum_id = cfg_checksum["id"].asInt();
     const string checksum_type = cfg_checksum["type"].asString();
@@ -444,12 +456,16 @@ void P4Objects::init_objects(std::istream &is) {
 
   typedef LearnWriterImpl<TransportNanomsg> MyLearnWriter;
   const std::string learning_ipc_name = "ipc:///tmp/test_bm_learning.ipc";
-  auto learn_writer = 
-    std::shared_ptr<MyLearnWriter>(new MyLearnWriter(learning_ipc_name));
+  std::shared_ptr<MyLearnWriter> learn_writer;
 
   const Json::Value cfg_learn_lists = cfg_root["learn_lists"];
+
+  if(cfg_learn_lists.size() > 0) {
+    learn_writer = std::shared_ptr<MyLearnWriter>(new MyLearnWriter(learning_ipc_name));
+  }
+
   for (const auto &cfg_learn_list : cfg_learn_lists) {
-    
+
     LearnEngine::list_id_t list_id = cfg_learn_list["id"].asInt();
     learn_engine->list_create(list_id);
     learn_engine->list_set_learn_writer(list_id, learn_writer);
@@ -466,7 +482,6 @@ void P4Objects::init_objects(std::istream &is) {
       const string field_name = cfg_value_field[1].asString();
       int field_offset = get_field_offset(header_id, field_name);
       learn_engine->list_push_back_field(list_id, header_id, field_offset);
-
     }
 
     learn_engine->list_init(list_id);

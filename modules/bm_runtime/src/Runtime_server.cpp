@@ -1,3 +1,23 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #include <thread>
 
 #include "Runtime.h"
@@ -19,6 +39,9 @@ using boost::shared_ptr;
 
 using namespace  ::bm_runtime;
 
+typedef RuntimeInterface::mbr_hdl_t mbr_hdl_t;
+typedef RuntimeInterface::grp_hdl_t grp_hdl_t;
+
 Switch *switch_;
 
 class RuntimeHandler : virtual public RuntimeIf {
@@ -35,8 +58,26 @@ class RuntimeHandler : virtual public RuntimeIf {
       return TableOperationErrorCode::INVALID_HANDLE;
     case MatchErrorCode::COUNTERS_DISABLED:
       return TableOperationErrorCode::COUNTERS_DISABLED;
+    case MatchErrorCode::INVALID_TABLE_NAME:
+      return TableOperationErrorCode::INVALID_TABLE_NAME;
+    case MatchErrorCode::INVALID_ACTION_NAME:
+      return TableOperationErrorCode::INVALID_ACTION_NAME;
     case MatchErrorCode::WRONG_TABLE_TYPE:
       return TableOperationErrorCode::WRONG_TABLE_TYPE;
+    case MatchErrorCode::INVALID_MBR_HANDLE:
+      return TableOperationErrorCode::INVALID_MBR_HANDLE;
+    case MatchErrorCode::MBR_STILL_USED:
+      return TableOperationErrorCode::MBR_STILL_USED;
+    case MatchErrorCode::MBR_ALREADY_IN_GRP:
+      return TableOperationErrorCode::MBR_ALREADY_IN_GRP;
+    case MatchErrorCode::MBR_NOT_IN_GRP:
+      return TableOperationErrorCode::MBR_NOT_IN_GRP;
+    case MatchErrorCode::INVALID_GRP_HANDLE:
+      return TableOperationErrorCode::INVALID_GRP_HANDLE;
+    case MatchErrorCode::GRP_STILL_USED:
+      return TableOperationErrorCode::GRP_STILL_USED;
+    case MatchErrorCode::EMPTY_GRP:
+      return TableOperationErrorCode::EMPTY_GRP;
     case MatchErrorCode::ERROR:
       return TableOperationErrorCode::ERROR;
     default:
@@ -44,10 +85,8 @@ class RuntimeHandler : virtual public RuntimeIf {
     }
   }
 
-  BmEntryHandle bm_match_table_add_entry(const std::string& table_name, const BmMatchParams& match_key, const std::string& action_name, const BmActionData& action_data, const BmAddEntryOptions& options) {
-    printf("bm_table_add_entry\n");
-    entry_handle_t entry_handle;
-    std::vector<MatchKeyParam> params;
+  static void build_match_key(std::vector<MatchKeyParam> &params,
+			      const BmMatchParams& match_key) {
     params.reserve(match_key.size()); // the number of elements will be the same
     for(const BmMatchParam &bm_param : match_key) {
       switch(bm_param.type) {
@@ -71,11 +110,18 @@ class RuntimeHandler : virtual public RuntimeIf {
 	assert(0 && "wrong type");
       }
     }
+  }
+
+  BmEntryHandle bm_mt_add_entry(const std::string& table_name, const BmMatchParams& match_key, const std::string& action_name, const BmActionData& action_data, const BmAddEntryOptions& options) {
+    printf("bm_table_add_entry\n");
+    entry_handle_t entry_handle;
+    std::vector<MatchKeyParam> params;
+    build_match_key(params, match_key);
     ActionData data;
     for(const std::string &d : action_data) {
       data.push_back_action_data(d.data(), d.size());
     }
-    MatchErrorCode error_code = switch_->match_table_add_entry(
+    MatchErrorCode error_code = switch_->mt_add_entry(
         table_name,
 	params,
 	action_name,
@@ -91,13 +137,13 @@ class RuntimeHandler : virtual public RuntimeIf {
     return entry_handle;
   }
 
-  void bm_match_table_set_default_action(const std::string& table_name, const std::string& action_name, const BmActionData& action_data) {
+  void bm_mt_set_default_action(const std::string& table_name, const std::string& action_name, const BmActionData& action_data) {
     printf("bm_set_default_action\n");
     ActionData data;
     for(const std::string &d : action_data) {
       data.push_back_action_data(d.data(), d.size());
     }
-    MatchErrorCode error_code = switch_->match_table_set_default_action(
+    MatchErrorCode error_code = switch_->mt_set_default_action(
         table_name,
 	action_name,
 	std::move(data)
@@ -109,9 +155,9 @@ class RuntimeHandler : virtual public RuntimeIf {
     }
   }
 
-  void bm_match_table_delete_entry(const std::string& table_name, const BmEntryHandle entry_handle) {
+  void bm_mt_delete_entry(const std::string& table_name, const BmEntryHandle entry_handle) {
     printf("bm_table_delete_entry\n");
-    MatchErrorCode error_code = switch_->match_table_delete_entry(
+    MatchErrorCode error_code = switch_->mt_delete_entry(
         table_name,
 	entry_handle
     );
@@ -122,17 +168,206 @@ class RuntimeHandler : virtual public RuntimeIf {
     }
   }
 
-  void bm_match_table_modify_entry(const std::string& table_name, const BmEntryHandle entry_handle, const std::string &action_name, const BmActionData& action_data) {
+  void bm_mt_modify_entry(const std::string& table_name, const BmEntryHandle entry_handle, const std::string &action_name, const BmActionData& action_data) {
     printf("bm_table_modify_entry\n");
     ActionData data;
     for(const std::string &d : action_data) {
       data.push_back_action_data(d.data(), d.size());
     }
-    MatchErrorCode error_code = switch_->match_table_modify_entry(
+    MatchErrorCode error_code = switch_->mt_modify_entry(
         table_name,
 	entry_handle,
 	action_name,
 	data
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  BmMemberHandle bm_mt_indirect_add_member(const std::string& table_name, const std::string& action_name, const BmActionData& action_data) {
+    printf("bm_mt_indirect_add_member\n");
+    mbr_hdl_t mbr_handle;
+    ActionData data;
+    for(const std::string &d : action_data) {
+      data.push_back_action_data(d.data(), d.size());
+    }
+    MatchErrorCode error_code = switch_->mt_indirect_add_member(
+        table_name, action_name,
+	std::move(data), &mbr_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+    return mbr_handle;
+  }
+
+  void bm_mt_indirect_delete_member(const std::string& table_name, const BmMemberHandle mbr_handle) {
+    printf("bm_mt_indirect_delete_member\n");
+    MatchErrorCode error_code = switch_->mt_indirect_delete_member(
+        table_name, mbr_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_indirect_modify_member(const std::string& table_name, const BmMemberHandle mbr_handle, const std::string& action_name, const BmActionData& action_data) {
+    printf("bm_mt_indirect_modify_member\n");
+    ActionData data;
+    for(const std::string &d : action_data) {
+      data.push_back_action_data(d.data(), d.size());
+    }
+    MatchErrorCode error_code = switch_->mt_indirect_modify_member(
+      table_name, mbr_handle, action_name, std::move(data)
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  BmEntryHandle bm_mt_indirect_add_entry(const std::string& table_name, const BmMatchParams& match_key, const BmMemberHandle mbr_handle, const BmAddEntryOptions& options) {
+    printf("bm_mt_indirect_add_entry\n");
+    entry_handle_t entry_handle;
+    std::vector<MatchKeyParam> params;
+    build_match_key(params, match_key);
+    MatchErrorCode error_code = switch_->mt_indirect_add_entry(
+      table_name, params, mbr_handle, &entry_handle, options.priority
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+    return entry_handle;
+  }
+
+  void bm_mt_indirect_modify_entry(const std::string& table_name, const BmEntryHandle entry_handle, const BmMemberHandle mbr_handle) {
+    printf("bm_mt_indirect_modify_entry\n");
+    MatchErrorCode error_code = switch_->mt_indirect_modify_entry(
+      table_name, entry_handle, mbr_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_indirect_delete_entry(const std::string& table_name, const BmEntryHandle entry_handle) {
+    printf("bm_mt_indirect_delete_entry\n");
+    MatchErrorCode error_code = switch_->mt_indirect_delete_entry(
+      table_name, entry_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_indirect_set_default_member(const std::string& table_name, const BmMemberHandle mbr_handle) {
+    printf("bm_mt_indirect_set_default_member\n");
+    MatchErrorCode error_code = switch_->mt_indirect_set_default_member(
+      table_name, mbr_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  BmGroupHandle bm_mt_indirect_ws_create_group(const std::string& table_name) {
+    printf("bm_mt_indirect_ws_create_group\n");
+    grp_hdl_t grp_handle;
+    MatchErrorCode error_code = switch_->mt_indirect_ws_create_group(
+      table_name, &grp_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+    return grp_handle;
+  }
+
+  void bm_mt_indirect_ws_delete_group(const std::string& table_name, const BmGroupHandle grp_handle) {
+    printf("bm_mt_indirect_ws_delete_group\n");
+    MatchErrorCode error_code = switch_->mt_indirect_ws_delete_group(
+      table_name, grp_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_indirect_ws_add_member_to_group(const std::string& table_name, const BmMemberHandle mbr_handle, const BmGroupHandle grp_handle) {
+    printf("bm_mt_indirect_ws_add_member_to_group\n");
+    MatchErrorCode error_code = switch_->mt_indirect_ws_add_member_to_group(
+      table_name, mbr_handle, grp_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_indirect_ws_remove_member_from_group(const std::string& table_name, const BmMemberHandle mbr_handle, const BmGroupHandle grp_handle) {
+    printf("bm_mt_indirect_ws_remove_member_from_group\n");
+    MatchErrorCode error_code = switch_->mt_indirect_ws_remove_member_from_group(
+      table_name, mbr_handle, grp_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  BmEntryHandle bm_mt_indirect_ws_add_entry(const std::string& table_name, const BmMatchParams& match_key, const BmGroupHandle grp_handle, const BmAddEntryOptions& options) {
+    printf("bm_mt_indirect_ws_add_entry\n");
+    entry_handle_t entry_handle;
+    std::vector<MatchKeyParam> params;
+    build_match_key(params, match_key);
+    MatchErrorCode error_code = switch_->mt_indirect_add_entry(
+      table_name, params, grp_handle, &entry_handle, options.priority
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+    return entry_handle;
+  }
+
+  void bm_mt_indirect_ws_modify_entry(const std::string& table_name, const BmEntryHandle entry_handle, const BmGroupHandle grp_handle) {
+    printf("bm_mt_indirect_ws_modify_entry\n");
+    MatchErrorCode error_code = switch_->mt_indirect_ws_modify_entry(
+      table_name, entry_handle, grp_handle
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_indirect_ws_set_default_group(const std::string& table_name, const BmGroupHandle grp_handle) {
+    printf("bm_mt_indirect_ws_set_default_group\n");
+    MatchErrorCode error_code = switch_->mt_indirect_ws_set_default_group(
+      table_name, grp_handle
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;

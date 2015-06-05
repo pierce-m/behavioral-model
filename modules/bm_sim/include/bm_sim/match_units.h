@@ -1,3 +1,23 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #ifndef _BM_MATCH_UNITS_H_
 #define _BM_MATCH_UNITS_H_
 
@@ -103,6 +123,7 @@ public:
 				   int priority = -1) = 0;
   virtual MatchErrorCode delete_entry(entry_handle_t handle) = 0;
   virtual MatchErrorCode modify_entry(entry_handle_t handle, V value) = 0;
+  virtual MatchErrorCode get_value(entry_handle_t handle, const V **value) = 0;
 
   size_t get_num_entries() const { return num_entries; }
 
@@ -110,10 +131,11 @@ public:
 
   size_t get_nbytes_key() const { return nbytes_key; }
 
+  bool valid_handle(entry_handle_t handle) const;
+
 protected:
   MatchErrorCode get_and_set_handle(entry_handle_t *handle);
   MatchErrorCode unset_handle(entry_handle_t handle);
-  bool valid_handle(entry_handle_t handle) const;
 
 private:
   virtual MatchUnitLookup lookup_key(const ByteContainer &key) const = 0;
@@ -165,6 +187,8 @@ private:
 
   MatchErrorCode modify_entry(entry_handle_t handle, V value) override;
 
+  MatchErrorCode get_value(entry_handle_t handle, const V **value) override;
+
   MatchUnitLookup lookup_key(const ByteContainer &key) const override;
 
 private:
@@ -208,6 +232,8 @@ private:
 
   MatchErrorCode modify_entry(entry_handle_t handle, V value) override;
 
+  MatchErrorCode get_value(entry_handle_t handle, const V **value) override;
+
   MatchUnitLookup lookup_key(const ByteContainer &key) const override;
 
 private:
@@ -249,6 +275,8 @@ private:
   MatchErrorCode delete_entry(entry_handle_t handle) override;
 
   MatchErrorCode modify_entry(entry_handle_t handle, V value) override;
+
+  MatchErrorCode get_value(entry_handle_t handle, const V **value) override;
 
   MatchUnitLookup lookup_key(const ByteContainer &key) const override;
 

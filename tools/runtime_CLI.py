@@ -1,5 +1,25 @@
 #!/usr/bin/python
 
+# Copyright 2013-present Barefoot Networks, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#
+# Antonin Bas (antonin@barefootnetworks.com)
+#
+#
+
 import argparse
 import cmd
 import os
@@ -56,7 +76,7 @@ class Table:
     def __init__(self, name, id_):
         self.name = name
         self.id_ = id_
-        self.type_ = None
+        self.match_type_ = None
         self.actions = {}
         self.key = []
         self.default_action = None
@@ -115,7 +135,10 @@ def load_json(json_src):
         for j_pipeline in json_["pipelines"]:
             for j_table in j_pipeline["tables"]:
                 table = Table(j_table["name"], j_table["id"])
-                table.type_ = MatchType.from_str(j_table["type"])
+                table.match_type = MatchType.from_str(j_table["match_type"])
+                type_ = j_table["type"]
+                if type_ != "simple":
+                    assert(0 and "only 'simple' table type supported for now")
                 for action in j_table["actions"]:
                     table.actions[action] = ACTIONS[action]
                 for j_key in j_table["key"]:
@@ -350,7 +373,7 @@ class RuntimeAPI(cmd.Cmd):
             "runtime data:",
             "\t".join(printable_byte_str(d) for d in runtime_data)
         )
-        self.client.bm_match_table_set_default_action(table_name, action_name, runtime_data)
+        self.client.bm_mt_set_default_action(table_name, action_name, runtime_data)
         print "SUCCESS"
 
     def complete_table_set_default(self, text, line, start_index, end_index):
@@ -367,7 +390,7 @@ class RuntimeAPI(cmd.Cmd):
         if action_name not in table.actions:
             print "Invalid action"
             return
-        if table.type_ == MatchType.TERNARY:
+        if table.match_type == MatchType.TERNARY:
             priority = int(args.pop(-1))
         else:
             priority = 0
@@ -390,7 +413,7 @@ class RuntimeAPI(cmd.Cmd):
             print "Invalid parameter"
             return
 
-        print "Adding entry to", MatchType.to_str(table.type_), "match table", table_name
+        print "Adding entry to", MatchType.to_str(table.match_type), "match table", table_name
 
         match_key = parse_match_key(table, match_key)
 
@@ -404,7 +427,7 @@ class RuntimeAPI(cmd.Cmd):
             "\t".join(printable_byte_str(d) for d in runtime_data)
         )
 
-        entry_handle = self.client.bm_match_table_add_entry(
+        entry_handle = self.client.bm_mt_add_entry(
             table_name, match_key, action_name, runtime_data,
             BmAddEntryOptions(priority = priority)
         )
@@ -423,7 +446,7 @@ class RuntimeAPI(cmd.Cmd):
             return
         entry_handle = int(args[1])
         print "Deleting entry", entry_handle, "from", table_name
-        self.client.bm_match_table_delete_entry(table_name, entry_handle)
+        self.client.bm_mt_delete_entry(table_name, entry_handle)
         print "SUCCESS"
 
     def complete_table_delete(self, text, line, start_index, end_index):

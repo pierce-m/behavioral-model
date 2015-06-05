@@ -1,3 +1,23 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #include "bm_sim/parser.h"
 
 bool ParseSwitchCase::match(const ByteContainer &input,
@@ -28,7 +48,7 @@ const ParseState *ParseState::operator()(Packet *pkt, const char *data,
        it != parser_ops.end();
        ++it) {
     parser_op = *it;
-    (*parser_op)(pkt, data, bytes_parsed);
+    (*parser_op)(pkt, data + *bytes_parsed, bytes_parsed);
   }
 
   if(!has_switch) return NULL;
@@ -56,7 +76,7 @@ void Parser::parse(Packet *pkt) const {
   const ParseState *next_state = init_state;
   size_t bytes_parsed = 0;
   while(next_state) {
-    next_state = (*next_state)(pkt, data + bytes_parsed, &bytes_parsed);
+    next_state = (*next_state)(pkt, data, &bytes_parsed);
     // std::cout << "bytes parsed: " << bytes_parsed << std::endl;
   }
   pkt->remove(bytes_parsed);

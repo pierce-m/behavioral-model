@@ -1,3 +1,23 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #include "bm_sim/match_units.h"
 #include "bm_sim/match_tables.h"
 
@@ -115,6 +135,16 @@ MatchUnitExact<V>::modify_entry(entry_handle_t handle, V value)
   return MatchErrorCode::SUCCESS;
 }
 
+template<typename V>
+MatchErrorCode
+MatchUnitExact<V>::get_value(entry_handle_t handle, const V **value)
+{
+  if(!this->valid_handle(handle)) return MatchErrorCode::INVALID_HANDLE;
+  Entry &entry = entries[handle];
+  *value = &entry.value;
+
+  return MatchErrorCode::SUCCESS;
+}
 
 template<typename V>
 typename MatchUnitLPM<V>::MatchUnitLookup
@@ -196,6 +226,17 @@ MatchUnitLPM<V>::modify_entry(entry_handle_t handle, V value)
   if(!this->valid_handle(handle)) return MatchErrorCode::INVALID_HANDLE;
   Entry &entry = entries[handle];
   entry.value = std::move(value);
+
+  return MatchErrorCode::SUCCESS;
+}
+
+template<typename V>
+MatchErrorCode
+MatchUnitLPM<V>::get_value(entry_handle_t handle, const V **value)
+{
+  if(!this->valid_handle(handle)) return MatchErrorCode::INVALID_HANDLE;
+  Entry &entry = entries[handle];
+  *value = &entry.value;
 
   return MatchErrorCode::SUCCESS;
 }
@@ -315,6 +356,17 @@ MatchUnitTernary<V>::modify_entry(entry_handle_t handle, V value)
   if(!this->valid_handle(handle)) return MatchErrorCode::INVALID_HANDLE;
   Entry &entry = entries[handle];
   entry.value = std::move(value);
+
+  return MatchErrorCode::SUCCESS;
+}
+
+template<typename V>
+MatchErrorCode
+MatchUnitTernary<V>::get_value(entry_handle_t handle, const V **value)
+{
+  if(!this->valid_handle(handle)) return MatchErrorCode::INVALID_HANDLE;
+  Entry &entry = entries[handle];
+  *value = &entry.value;
 
   return MatchErrorCode::SUCCESS;
 }

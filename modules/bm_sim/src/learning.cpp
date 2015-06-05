@@ -1,3 +1,23 @@
+/* Copyright 2013-present Barefoot Networks, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Antonin Bas (antonin@barefootnetworks.com)
+ *
+ */
+
 #include <cassert>
 
 #include "bm_sim/learning.h"
@@ -55,7 +75,7 @@ void LearnEngine::LearnSampleBuilder::operator()(
 ) const
 {
   for(const LearnSampleEntry &entry : entries) {
-    const ByteContainer *bytes;
+    const ByteContainer *bytes = nullptr;
     switch(entry.tag) {
     case LearnSampleEntry::FIELD:
       bytes = &phv.get_field(entry.field.header, entry.field.offset).get_bytes();
@@ -82,7 +102,10 @@ void LearnEngine::LearnList::init()
 
 LearnEngine::LearnList::~LearnList()
 {
-  stop_transmit_thread = true;
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    stop_transmit_thread = true;
+  }
   b_can_send.notify_all();
   transmit_thread.join();
 }
@@ -168,7 +191,8 @@ void LearnEngine::LearnList::buffer_transmit()
   size_t num_samples_to_send;
   std::unique_lock<std::mutex> lock(mutex);
   clock::time_point now = clock::now();
-  while(buffer_tmp.size() == 0 &&
+  while(!stop_transmit_thread &&
+	buffer_tmp.size() == 0 &&
 	(!with_timeout || num_samples == 0 || now < (buffer_started + timeout))) {
     if(with_timeout && num_samples > 0) {
       b_can_send.wait_until(lock, buffer_started + timeout);
@@ -176,9 +200,10 @@ void LearnEngine::LearnList::buffer_transmit()
     else {
       b_can_send.wait(lock);
     }
-    if(stop_transmit_thread) return;
     now = clock::now();
   }
+
+  if(stop_transmit_thread) return;
 
   if(buffer_tmp.size() == 0) { // timeout -> we need to swap here
     num_samples_to_send = num_samples;

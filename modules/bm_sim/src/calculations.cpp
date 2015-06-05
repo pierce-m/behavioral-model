@@ -18,25 +18,20 @@
  *
  */
 
-#ifndef _BM_MATCH_ERROR_CODES_H_
-#define _BM_MATCH_ERROR_CODES_H_
+#include "bm_sim/calculations.h"
 
-enum class MatchErrorCode {
-  SUCCESS = 0,
-  TABLE_FULL,
-  INVALID_HANDLE,
-  COUNTERS_DISABLED,
-  INVALID_TABLE_NAME,
-  INVALID_ACTION_NAME,
-  WRONG_TABLE_TYPE,
-  INVALID_MBR_HANDLE,
-  MBR_STILL_USED,
-  MBR_ALREADY_IN_GRP,
-  MBR_NOT_IN_GRP,
-  INVALID_GRP_HANDLE,
-  GRP_STILL_USED,
-  EMPTY_GRP,
-  ERROR,
-};
+#include "xxhash.h"
 
-#endif
+namespace hash {
+
+template <typename T,
+	  typename std::enable_if<std::is_unsigned<T>::value, int>::type = 0>
+T xxh64(const char *buf, size_t len) {
+  return static_cast<T>(XXH64(buf, len, 0));
+}
+
+template unsigned int xxh64<unsigned int>(const char *, size_t);
+
+}
+
+
