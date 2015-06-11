@@ -33,6 +33,7 @@
 #include "named_p4object.h"
 #include "packet.h"
 #include "event_logger.h"
+#include "calculations.h"
 
 using std::vector;
 
@@ -59,7 +60,9 @@ private:
 
 struct ActionParam
 {
-  enum {CONST, FIELD, HEADER, ACTION_DATA} tag;
+  // some old P4 primitives take a calculation as a parameter, I don't know if I
+  // will keep it around but for now I need it
+  enum {CONST, FIELD, HEADER, ACTION_DATA, HEADER_STACK, CALCULATION} tag;
 
   union {
     unsigned int const_offset;
@@ -72,6 +75,11 @@ struct ActionParam
     header_id_t header;
 
     unsigned int action_data_offset;
+
+    header_stack_id_t header_stack;
+
+    // now owning pointer
+    const NamedCalculation *calculation;
   };
 };
 
@@ -138,7 +146,17 @@ struct ActionParamWithState {
 
   operator Header &() {
     assert(ap.tag == ActionParam::HEADER);
-    return state.phv.get_header(ap.header);    
+    return state.phv.get_header(ap.header);
+  }
+
+  operator HeaderStack &() {
+    assert(ap.tag == ActionParam::HEADER_STACK);
+    return state.phv.get_header_stack(ap.header_stack);
+  }
+
+  operator const NamedCalculation &() {
+    assert(ap.tag == ActionParam::CALCULATION);
+    return *(ap.calculation);
   }
 };
 
@@ -220,6 +238,11 @@ protected:
     return phv->get_header(name);
   }
 
+  // in practice, regular primitives should not have to use this
+  PHV &get_phv() {
+    return *phv;
+  }
+
 private:
   unpack_caller<sizeof...(Args)> caller;
   PHV *phv;
@@ -252,8 +275,10 @@ public:
 
   void parameter_push_back_field(header_id_t header, int field_offset);
   void parameter_push_back_header(header_id_t header);
+  void parameter_push_back_header_stack(header_stack_id_t header_stack);
   void parameter_push_back_const(const Data &data);
   void parameter_push_back_action_data(int action_data_offset);
+  void parameter_push_back_calculation(const NamedCalculation *calculation);
 
   void push_back_primitive(ActionPrimitive_ *primitive);
 

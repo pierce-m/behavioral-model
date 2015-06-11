@@ -78,6 +78,29 @@ class CRSet : public ActionPrimitive<> {
 
 REGISTER_PRIMITIVE(CRSet);
 
+/* this is an example of primitive which uses header stacks */
+class Pop : public ActionPrimitive<HeaderStack &> {
+  void operator ()(HeaderStack &stack) {
+    stack.pop_front();
+  }
+};
+
+REGISTER_PRIMITIVE(Pop);
+
+/* implementation of old primitive modify_field_with_hash_based_offset */
+class ModifyFieldWithHashBasedOffset
+  : public ActionPrimitive<Field &, const Data &,
+			   const NamedCalculation &, const Data &> {
+  void operator ()(Field &dst, const Data &base,
+		   const NamedCalculation &hash, const Data &size) {
+    uint64_t v =
+      (hash.output(get_phv()) + base.get<uint64_t>()) % size.get<uint64_t>();
+    dst.set(v);
+  }
+};
+
+REGISTER_PRIMITIVE(ModifyFieldWithHashBasedOffset);
+
 // Google Test fixture for actions tests
 class ActionsTest : public ::testing::Test {
 protected:
@@ -88,6 +111,9 @@ protected:
 
   HeaderType testHeaderType;
   header_id_t testHeader1{0}, testHeader2{1};
+  header_id_t testHeaderS0{2}, testHeaderS1{3};
+
+  header_stack_id_t testHeaderStack{0};
 
   ActionFn testActionFn;
   ActionFnEntry testActionFnEntry;
@@ -101,8 +127,15 @@ protected:
     testHeaderType.push_back_field("f8", 8);
     testHeaderType.push_back_field("f16", 16);
     testHeaderType.push_back_field("f128", 128);
+
     phv_factory.push_back_header("test1", testHeader1, testHeaderType);
     phv_factory.push_back_header("test2", testHeader2, testHeaderType);
+
+    phv_factory.push_back_header("testS0", testHeaderS0, testHeaderType);
+    phv_factory.push_back_header("testS1", testHeaderS1, testHeaderType);
+    phv_factory.push_back_header_stack("test_stack", testHeaderStack,
+				       testHeaderType,
+				       {testHeaderS0, testHeaderS1});
   }
 
   virtual void SetUp() {
@@ -223,7 +256,6 @@ TEST_F(ActionsTest, CopyHeader) {
   }
 }
 
-
 TEST_F(ActionsTest, CRSet) {
   CRSet primitive;
   testActionFn.push_back_primitive(&primitive);
@@ -233,10 +265,44 @@ TEST_F(ActionsTest, CRSet) {
 
   ASSERT_EQ((unsigned) 0, f.get_uint());
 
-  phv->get_field("test1.f16").set(666);
-  // testActionFnEntry(phv);
+  testActionFnEntry(pkt.get());
 
   ASSERT_EQ((unsigned) 666, f.get_uint());
+}
+
+TEST_F(ActionsTest, Pop) {
+  Pop primitive;
+  testActionFn.push_back_primitive(&primitive);
+  testActionFn.parameter_push_back_header_stack(testHeaderStack);
+
+  HeaderStack &stack = phv->get_header_stack(testHeaderStack);
+  ASSERT_EQ(1u, stack.push_back());
+  ASSERT_EQ(1u, stack.get_count());
+
+  testActionFnEntry(pkt.get());
+  ASSERT_EQ(0u, stack.get_count());
+}
+
+TEST_F(ActionsTest, ModifyFieldWithHashBasedOffset) {
+  uint64_t base = 100;
+  uint64_t size = 65536; // 16 bits
+
+  BufBuilder builder;
+  builder.push_back_field(testHeader1, 0, 32);
+  builder.push_back_field(testHeader1, 4, 128);
+  NamedCalculation calculation("test_calculation", 0, builder);
+
+  ModifyFieldWithHashBasedOffset primitive;
+  testActionFn.push_back_primitive(&primitive);
+  testActionFn.parameter_push_back_field(testHeader2, 3); // f16
+  testActionFn.parameter_push_back_const(Data(base));
+  testActionFn.parameter_push_back_calculation(&calculation);
+  testActionFn.parameter_push_back_const(Data(size));
+
+  unsigned int expected = (base + calculation.output(*phv)) % size;
+
+  testActionFnEntry(pkt.get());
+  ASSERT_EQ(expected, phv->get_field(testHeader2, 3).get_uint());
 }
 
 TEST_F(ActionsTest, TwoPrimitives) {

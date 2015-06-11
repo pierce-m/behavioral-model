@@ -30,7 +30,14 @@ void ActionFn::parameter_push_back_field(header_id_t header, int field_offset) {
 void ActionFn::parameter_push_back_header(header_id_t header) {
   ActionParam param;
   param.tag = ActionParam::HEADER;
-  param.header = header;;
+  param.header = header;
+  params.push_back(param);
+}
+
+void ActionFn::parameter_push_back_header_stack(header_stack_id_t header_stack) {
+  ActionParam param;
+  param.tag = ActionParam::HEADER_STACK;
+  param.header_stack = header_stack;
   params.push_back(param);
 }
 
@@ -46,6 +53,13 @@ void ActionFn::parameter_push_back_action_data(int action_data_offset) {
   ActionParam param;
   param.tag = ActionParam::ACTION_DATA;
   param.action_data_offset = action_data_offset;
+  params.push_back(param);
+}
+
+void ActionFn::parameter_push_back_calculation(const NamedCalculation *calculation) {
+  ActionParam param;
+  param.tag = ActionParam::CALCULATION;
+  param.calculation = calculation;
   params.push_back(param);
 }
 
