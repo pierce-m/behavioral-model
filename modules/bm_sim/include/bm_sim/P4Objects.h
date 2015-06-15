@@ -39,6 +39,7 @@
 #include "conditionals.h"
 #include "control_flow.h"
 #include "learning.h"
+#include "meters.h"
 
 class P4Objects {
 public:
@@ -84,6 +85,10 @@ public:
 
   Pipeline *get_pipeline(const std::string &name) {
     return pipelines_map[name].get();
+  }
+
+  MeterArray *get_meter_array(const std::string &name) {
+    return meter_arrays[name].get();
   }
 
 private:
@@ -135,6 +140,11 @@ private:
     pipelines_map[name] = std::move(pipeline);
   }
 
+  void add_meter_array(const std::string &name,
+		       std::unique_ptr<MeterArray> meter_array) {
+    meter_arrays[name] = std::move(meter_array);
+  }
+
   void build_conditional(const Json::Value &json_expression,
 			 Conditional *conditional);
 
@@ -173,6 +183,9 @@ private:
   std::unordered_map<std::string, std::unique_ptr<Deparser> > deparsers{};
 
   std::unique_ptr<LearnEngine> learn_engine{};
+
+  // meter arrays
+  std::unordered_map<std::string, std::unique_ptr<MeterArray> > meter_arrays{};
 
 private:
   int get_field_offset(header_id_t header_id, const std::string &field_name);
