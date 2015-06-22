@@ -1,1 +1,1 @@
-SUBDIRS = simple_router l2_switch corsa
+SUBDIRS = simple_router l2_switch simple_switch corsa
