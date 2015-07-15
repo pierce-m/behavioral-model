@@ -56,8 +56,12 @@ class RuntimeHandler : virtual public RuntimeIf {
       return TableOperationErrorCode::TABLE_FULL;
     case MatchErrorCode::INVALID_HANDLE:
       return TableOperationErrorCode::INVALID_HANDLE;
+    case MatchErrorCode::EXPIRED_HANDLE:
+      return TableOperationErrorCode::EXPIRED_HANDLE;
     case MatchErrorCode::COUNTERS_DISABLED:
       return TableOperationErrorCode::COUNTERS_DISABLED;
+    case MatchErrorCode::AGEING_DISABLED:
+      return TableOperationErrorCode::AGEING_DISABLED;
     case MatchErrorCode::INVALID_TABLE_NAME:
       return TableOperationErrorCode::INVALID_TABLE_NAME;
     case MatchErrorCode::INVALID_ACTION_NAME:
@@ -104,7 +108,7 @@ class RuntimeHandler : virtual public RuntimeIf {
 	break;
       case BmMatchParamType::type::VALID:
 	params.emplace_back(MatchKeyParam::Type::VALID,
-			    bm_param.valid.key ? "\x01" : "\x00");
+			    bm_param.valid.key ? std::string("\x01", 1) : std::string("\x00", 1));
 	break;
       default:
 	assert(0 && "wrong type");
@@ -179,6 +183,19 @@ class RuntimeHandler : virtual public RuntimeIf {
 	entry_handle,
 	action_name,
 	data
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
+  void bm_mt_set_entry_ttl(const std::string& table_name, const BmEntryHandle entry_handle, const int32_t timeout_ms) {
+    printf("bm_mt_set_entry_ttl\n");
+    MatchErrorCode error_code = switch_->mt_set_entry_ttl(
+        table_name, entry_handle,
+	static_cast<unsigned int>(timeout_ms)
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
@@ -274,6 +291,19 @@ class RuntimeHandler : virtual public RuntimeIf {
     }
   }
 
+  void bm_mt_indirect_set_entry_ttl(const std::string& table_name, const BmEntryHandle entry_handle, const int32_t timeout_ms) {
+    printf("bm_mt_indirect_set_entry_ttl\n");
+    MatchErrorCode error_code = switch_->mt_indirect_set_entry_ttl(
+        table_name, entry_handle,
+	static_cast<unsigned int>(timeout_ms)
+    );
+    if(error_code != MatchErrorCode::SUCCESS) {
+      InvalidTableOperation ito;
+      ito.what = get_exception_code(error_code);
+      throw ito;
+    }
+  }
+
   void bm_mt_indirect_set_default_member(const std::string& table_name, const BmMemberHandle mbr_handle) {
     printf("bm_mt_indirect_set_default_member\n");
     MatchErrorCode error_code = switch_->mt_indirect_set_default_member(
@@ -341,7 +371,7 @@ class RuntimeHandler : virtual public RuntimeIf {
     entry_handle_t entry_handle;
     std::vector<MatchKeyParam> params;
     build_match_key(params, match_key);
-    MatchErrorCode error_code = switch_->mt_indirect_add_entry(
+    MatchErrorCode error_code = switch_->mt_indirect_ws_add_entry(
       table_name, params, grp_handle, &entry_handle, options.priority
     );
     if(error_code != MatchErrorCode::SUCCESS) {
@@ -592,6 +622,13 @@ class RuntimeHandler : virtual public RuntimeIf {
       idmo.what = (DevMgrErrorCode::type) 1; // TODO
       throw idmo;
     }
+  }
+
+  void bm_dump_table(std::string& _return, const std::string& table_name) {
+    printf("dump_table\n");
+    std::ostringstream stream;
+    switch_->dump_table(table_name, stream);
+    _return.append(stream.str());
   }
 
 };

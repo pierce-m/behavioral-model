@@ -21,9 +21,9 @@
 #ifndef _BM_MATCH_TABLES_H_
 #define _BM_MATCH_TABLES_H_
 
-#include <atomic>
 #include <vector>
 #include <type_traits>
+#include <iostream>
 
 #include "match_units.h"
 #include "actions.h"
@@ -33,10 +33,6 @@
 class MatchTableAbstract : public NamedP4Object
 {
 public:
-  struct Counter {
-    std::atomic<std::uint_fast64_t> bytes{0};
-    std::atomic<std::uint_fast64_t> packets{0};
-  };
   typedef uint64_t counter_value_t;
 
   struct ActionEntry {
@@ -44,6 +40,10 @@ public:
 
     ActionEntry(ActionFnEntry action_fn, const ControlFlowNode *next_node)
       : action_fn(std::move(action_fn)), next_node(next_node) { }
+
+    void dump(std::ostream &stream) const {
+      action_fn.dump(stream);
+    }
 
     ActionEntry(const ActionEntry &other) = delete;
     ActionEntry &operator=(const ActionEntry &other) = delete;
@@ -57,9 +57,11 @@ public:
 
 public:
   MatchTableAbstract(const std::string &name, p4object_id_t id,
-		     size_t size, bool with_counters)
+		     size_t size, bool with_counters, bool with_ageing,
+		     MatchUnitAbstract_ *mu)
     : NamedP4Object(name, id), size(size),
-      with_counters(with_counters), counters(size) { }
+      with_counters(with_counters), with_ageing(with_ageing),
+      match_unit_(mu) { }
 
   virtual ~MatchTableAbstract() { }
 
@@ -72,6 +74,8 @@ public:
 
   virtual bool is_valid_handle(entry_handle_t handle) const = 0;
 
+  virtual void dump(std::ostream &stream) const = 0;
+
   void set_next_node(p4object_id_t action_id, const ControlFlowNode *next_node) {
     next_nodes[action_id] = next_node;
   }
@@ -81,6 +85,16 @@ public:
 				counter_value_t *packets) const;
   MatchErrorCode reset_counters();
 
+  MatchErrorCode set_entry_ttl(entry_handle_t handle, unsigned int ttl_ms);
+
+  void sweep_entries(std::vector<entry_handle_t> &entries) const;
+
+  MatchTableAbstract(const MatchTableAbstract &other) = delete;
+  MatchTableAbstract &operator=(const MatchTableAbstract &other) = delete;
+  
+  MatchTableAbstract(MatchTableAbstract &&other) = delete;
+  MatchTableAbstract &operator=(MatchTableAbstract &&other) = delete;
+
 protected:
   typedef boost::shared_lock<boost::shared_mutex> ReadLock;
   typedef boost::unique_lock<boost::shared_mutex> WriteLock;
@@ -88,13 +102,6 @@ protected:
 protected:
   const ControlFlowNode *get_next_node(p4object_id_t action_id) const {
     return next_nodes.at(action_id);
-  }
-
-  void update_counters(entry_handle_t handle, const Packet &pkt) {
-    assert(with_counters);
-    Counter &c = counters[handle];
-    c.bytes += pkt.get_ingress_length();
-    c.packets += 1;
   }
 
   ReadLock lock_read() const { return ReadLock(t_mutex); }
@@ -106,12 +113,13 @@ protected:
   size_t size{0};
 
   std::atomic_bool with_counters{false};
-  std::vector<Counter> counters{};
+  std::atomic_bool with_ageing{false};
 
   std::unordered_map<p4object_id_t, const ControlFlowNode *> next_nodes{};
 
 private:
   mutable boost::shared_mutex t_mutex{};
+  MatchUnitAbstract_ *match_unit_{nullptr};
 };
 
 // MatchTable is exposed to the runtime for configuration
@@ -124,8 +132,10 @@ public:
 public:
   MatchTable(const std::string &name, p4object_id_t id,
 	     std::unique_ptr<MatchUnitAbstract<ActionEntry> > match_unit,
-	     bool with_counters = false) 
-    : MatchTableAbstract(name, id, match_unit->get_size(), with_counters),
+	     bool with_counters = false, bool with_ageing = false) 
+    : MatchTableAbstract(name, id, match_unit->get_size(),
+			 with_counters, with_ageing,
+			 match_unit.get()),
       match_unit(std::move(match_unit)) { }
 
   MatchErrorCode add_entry(const std::vector<MatchKeyParam> &match_key,
@@ -154,12 +164,14 @@ public:
     return match_unit->valid_handle(handle);
   }
 
+  void dump(std::ostream &stream) const override;
+
 public:
   static std::unique_ptr<MatchTable> create(
     const std::string &match_type, 
     const std::string &name, p4object_id_t id,
     size_t size, const MatchKeyBuilder &match_key_builder,
-    bool with_counters
+    bool with_counters, bool with_ageing
   );
 
 private:
@@ -184,6 +196,10 @@ public:
     unsigned int get() const { return (index & _index_mask); }
     unsigned int get_mbr() const { assert(is_mbr()); return get(); }
     unsigned int get_grp() const { assert(is_grp()); return get(); }
+
+    void dump(std::ostream &stream) const {
+      stream << index;
+    }
 
     static IndirectIndex make_mbr_index(unsigned int index) {
       assert(index <= _index_mask);
@@ -255,9 +271,11 @@ public:
   MatchTableIndirect(
     const std::string &name, p4object_id_t id,
     std::unique_ptr<MatchUnitAbstract<IndirectIndex> > match_unit,
-    bool with_counters = false
+    bool with_counters = false, bool with_ageing = false
   ) 
-    : MatchTableAbstract(name, id, match_unit->get_size(), with_counters),
+    : MatchTableAbstract(name, id, match_unit->get_size(),
+			 with_counters, with_ageing,
+			 match_unit.get()),
       match_unit(std::move(match_unit)) { }
 
   MatchErrorCode add_member(const ActionFn *action_fn,
@@ -292,6 +310,8 @@ public:
     return match_unit->valid_handle(handle);
   }
 
+  void dump(std::ostream &stream) const override;
+
   size_t get_num_members() const {
     return num_members;
   }
@@ -301,7 +321,7 @@ public:
     const std::string &match_type, 
     const std::string &name, p4object_id_t id,
     size_t size, const MatchKeyBuilder &match_key_builder,
-    bool with_counters
+    bool with_counters, bool with_ageing
   );
 
 protected:
@@ -334,9 +354,10 @@ public:
   MatchTableIndirectWS(
     const std::string &name, p4object_id_t id,
     std::unique_ptr<MatchUnitAbstract<IndirectIndex> > match_unit,
-    bool with_counters = false
+    bool with_counters = false, bool with_ageing = false
   ) 
-    : MatchTableIndirect(name, id, std::move(match_unit), with_counters) { }
+    : MatchTableIndirect(name, id, std::move(match_unit),
+			 with_counters, with_ageing) { }
 
   void set_hash(std::unique_ptr<Calculation<hash_t> > h) {
     hash = std::move(h);
@@ -373,7 +394,7 @@ public:
     const std::string &match_type, 
     const std::string &name, p4object_id_t id,
     size_t size, const MatchKeyBuilder &match_key_builder,
-    bool with_counters
+    bool with_counters, bool with_ageing
   );
 
 protected:

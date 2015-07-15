@@ -21,9 +21,20 @@
 #include "bm_sim/phv.h"
 
 void PHV::reset() {
-  for(std::vector<Header>::iterator it = headers.begin();
-      it != headers.end();
-      it++) {
-    (*it).mark_invalid();
+  for(auto &h : headers)
+    h.mark_invalid();
+}
+
+void PHV::reset_header_stacks() {
+  for(auto &hs : header_stacks)
+    hs.reset();
+}
+
+// so slow I want to die, but optional for a target...
+// I need to find a better way of doing this
+void PHV::reset_metadata() {
+  for(auto &h : headers) {
+    if(h.is_metadata())
+      h.reset();
   }
 }

@@ -20,6 +20,32 @@
 
 #include "bm_sim/match_tables.h"
 
+namespace {
+
+template <typename V>
+std::unique_ptr<MatchUnitAbstract<V> > create_match_unit(
+  const std::string match_type,
+  const size_t size, const MatchKeyBuilder &match_key_builder
+)
+{
+  typedef MatchUnitExact<V> MUExact;
+  typedef MatchUnitLPM<V> MULPM;
+  typedef MatchUnitTernary<V> MUTernary;
+
+  std::unique_ptr<MatchUnitAbstract<V> > match_unit;
+  if(match_type == "exact")
+    match_unit = std::unique_ptr<MUExact>(new MUExact(size, match_key_builder));
+  else if(match_type == "lpm")
+    match_unit = std::unique_ptr<MULPM>(new MULPM(size, match_key_builder));
+  else if(match_type == "ternary")
+    match_unit = std::unique_ptr<MUTernary>(new MUTernary(size, match_key_builder));
+  else
+    assert(0 && "invalid match type");
+  return match_unit;
+}
+
+}
+
 typedef MatchTableAbstract::ActionEntry ActionEntry;
 
 const ControlFlowNode *
@@ -44,35 +70,47 @@ MatchTableAbstract::apply_action(Packet *pkt)
 
   const ControlFlowNode *next_node = action_entry.next_node;
 
-  lock.unlock();
-
-  if(hit && with_counters) update_counters(handle, *pkt);
-
   return next_node;
 }
 
 MatchErrorCode
 MatchTableAbstract::query_counters(entry_handle_t handle,
 				   counter_value_t *bytes,
-				   counter_value_t *packets) const {
+				   counter_value_t *packets) const
+{
+  ReadLock lock = lock_read();
   if(!with_counters) return MatchErrorCode::COUNTERS_DISABLED;
   if(!is_valid_handle(handle)) return MatchErrorCode::INVALID_HANDLE;
-  const Counter &c = counters[handle];
-  *bytes = c.bytes;
-  *packets = c.packets;
+  const MatchUnit::EntryMeta &meta = match_unit_->get_entry_meta(handle);
+  *bytes = meta.counter.bytes;
+  *packets = meta.counter.packets;
   return MatchErrorCode::SUCCESS;
 }
 
 MatchErrorCode
-MatchTableAbstract::reset_counters() {
+MatchTableAbstract::set_entry_ttl(
+  entry_handle_t handle, unsigned int ttl_ms
+)
+{
+  if(!with_ageing) return MatchErrorCode::AGEING_DISABLED;
+  WriteLock lock = lock_write();
+  return match_unit_->set_entry_ttl(handle, ttl_ms);
+}
+
+/* really needed ? */
+MatchErrorCode
+MatchTableAbstract::reset_counters()
+{
   if(!with_counters) return MatchErrorCode::COUNTERS_DISABLED;
-  // could take a while, but do not block anyone else
-  // alternative would be to do a fill and use a lock
-  for(Counter &c : counters) {
-    c.bytes = 0;
-    c.packets = 0;
-  }
+  match_unit_->reset_counters();
   return MatchErrorCode::SUCCESS;
+}
+
+void
+MatchTableAbstract::sweep_entries(std::vector<entry_handle_t> &entries) const
+{
+  ReadLock lock = lock_read(); // TODO: how to avoid this?
+  match_unit_->sweep_entries(entries);
 }
 
 const ActionEntry &
@@ -142,28 +180,26 @@ MatchTable::set_default_action(
   return MatchErrorCode::SUCCESS;
 }
 
+void
+MatchTable::dump(std::ostream &stream) const
+{
+  ReadLock lock = lock_read();
+  stream << name << ":\n";
+  match_unit->dump(stream);
+}
+
 std::unique_ptr<MatchTable>
 MatchTable::create(
   const std::string &match_type, const std::string &name, p4object_id_t id,
-  size_t size, const MatchKeyBuilder &match_key_builder, bool with_counters
+  size_t size, const MatchKeyBuilder &match_key_builder,
+  bool with_counters, bool with_ageing
 )
 {
-  typedef MatchUnitExact<ActionEntry> MUExact;
-  typedef MatchUnitLPM<ActionEntry> MULPM;
-  typedef MatchUnitTernary<ActionEntry> MUTernary;
+  std::unique_ptr<MatchUnitAbstract<ActionEntry> > match_unit = 
+    create_match_unit<ActionEntry>(match_type, size, match_key_builder);
 
-  std::unique_ptr<MatchUnitAbstract<ActionEntry> > match_unit;
-  if(match_type == "exact")
-    match_unit = std::unique_ptr<MUExact>(new MUExact(size, match_key_builder));
-  else if(match_type == "lpm")
-    match_unit = std::unique_ptr<MULPM>(new MULPM(size, match_key_builder));
-  else if(match_type == "ternary")
-    match_unit = std::unique_ptr<MUTernary>(new MUTernary(size, match_key_builder));
-  else
-    assert(0 && "invalid match type");
-  
   return std::unique_ptr<MatchTable>(
-    new MatchTable(name, id, std::move(match_unit), with_counters)
+    new MatchTable(name, id, std::move(match_unit), with_counters, with_ageing)
   );
 }
 
@@ -172,25 +208,14 @@ MatchTableIndirect::create(
   const std::string &match_type, 
   const std::string &name, p4object_id_t id,
   size_t size, const MatchKeyBuilder &match_key_builder,
-  bool with_counters
+  bool with_counters, bool with_ageing
 )
 {
-  typedef MatchUnitExact<IndirectIndex> MUExact;
-  typedef MatchUnitLPM<IndirectIndex> MULPM;
-  typedef MatchUnitTernary<IndirectIndex> MUTernary;
-  
-  std::unique_ptr<MatchUnitAbstract<IndirectIndex> > match_unit;
-  if(match_type == "exact")
-    match_unit = std::unique_ptr<MUExact>(new MUExact(size, match_key_builder));
-  else if(match_type == "lpm")
-    match_unit = std::unique_ptr<MULPM>(new MULPM(size, match_key_builder));
-  else if(match_type == "ternary")
-    match_unit = std::unique_ptr<MUTernary>(new MUTernary(size, match_key_builder));
-  else
-    assert(0 && "invalid match type");
+  std::unique_ptr<MatchUnitAbstract<IndirectIndex> > match_unit = 
+    create_match_unit<IndirectIndex>(match_type, size, match_key_builder);
 
   return std::unique_ptr<MatchTableIndirect>(
-    new MatchTableIndirect(name, id, std::move(match_unit), with_counters)
+    new MatchTableIndirect(name, id, std::move(match_unit), with_counters, with_ageing)
   );
 }
 
@@ -335,6 +360,19 @@ MatchTableIndirect::set_default_member(mbr_hdl_t mbr)
   return MatchErrorCode::SUCCESS;
 }
 
+void
+MatchTableIndirect::dump(std::ostream &stream) const
+{
+  ReadLock lock = lock_read();
+  stream << name << ":\n";
+  match_unit->dump(stream);
+  for(mbr_hdl_t mbr : mbr_handles) {
+    stream << mbr << ": ";
+    action_entries[mbr].dump(stream);
+    stream << "\n";
+  }
+}
+
 
 MatchErrorCode
 MatchTableIndirectWS::GroupInfo::add_member(mbr_hdl_t mbr)
@@ -374,25 +412,14 @@ MatchTableIndirectWS::create(
   const std::string &match_type, 
   const std::string &name, p4object_id_t id,
   size_t size, const MatchKeyBuilder &match_key_builder,
-  bool with_counters
+  bool with_counters, bool with_ageing
 )
 {
-  typedef MatchUnitExact<IndirectIndex> MUExact;
-  typedef MatchUnitLPM<IndirectIndex> MULPM;
-  typedef MatchUnitTernary<IndirectIndex> MUTernary;
-  
-  std::unique_ptr<MatchUnitAbstract<IndirectIndex> > match_unit;
-  if(match_type == "exact")
-    match_unit = std::unique_ptr<MUExact>(new MUExact(size, match_key_builder));
-  else if(match_type == "lpm")
-    match_unit = std::unique_ptr<MULPM>(new MULPM(size, match_key_builder));
-  else if(match_type == "ternary")
-    match_unit = std::unique_ptr<MUTernary>(new MUTernary(size, match_key_builder));
-  else
-    assert(0 && "invalid match type");
+  std::unique_ptr<MatchUnitAbstract<IndirectIndex> > match_unit = 
+    create_match_unit<IndirectIndex>(match_type, size, match_key_builder);
 
   return std::unique_ptr<MatchTableIndirectWS>(
-    new MatchTableIndirectWS(name, id, std::move(match_unit), with_counters)
+    new MatchTableIndirectWS(name, id, std::move(match_unit), with_counters, with_ageing)
   );
 }
 

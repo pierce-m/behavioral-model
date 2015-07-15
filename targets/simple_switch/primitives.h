@@ -79,7 +79,7 @@ REGISTER_PRIMITIVE(bit_and);
 
 class drop : public ActionPrimitive<> {
   void operator ()() {
-    get_field("standard_metadata.egress_port").set(0);
+    get_field("standard_metadata.egress_spec").set(511);
   }
 };
 
@@ -88,7 +88,7 @@ REGISTER_PRIMITIVE(drop);
 class generate_digest : public ActionPrimitive<const Data &, const Data &> {
   void operator ()(const Data &receiver, const Data &learn_id) {
     // discared receiver for now
-    get_field("intrinsic_metadata.learn_id").set(learn_id);
+    get_field("intrinsic_metadata.lf_field_list").set(learn_id);
   }
 };
 

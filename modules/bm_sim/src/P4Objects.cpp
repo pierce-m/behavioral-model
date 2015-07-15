@@ -97,6 +97,7 @@ void P4Objects::init_objects(std::istream &is) {
     const string header_name = cfg_header["name"].asString();
     const string header_type_name = cfg_header["header_type"].asString();
     header_id_t header_id = cfg_header["id"].asInt();
+    bool metadata = cfg_header["metadata"].asBool();
 
     HeaderType *header_type = get_header_type(header_type_name);
     header_to_type_map[header_name] = header_type;
@@ -104,7 +105,7 @@ void P4Objects::init_objects(std::istream &is) {
     // std::set<int> arith_offsets =
     //   build_arith_offsets(cfg_root["actions"], header_name);
 
-    phv_factory.push_back_header(header_name, header_id, *header_type);
+    phv_factory.push_back_header(header_name, header_id, *header_type, metadata);
     phv_factory.disable_all_field_arith(header_id);
     add_header_id(header_name, header_id);
   }
@@ -378,6 +379,9 @@ void P4Objects::init_objects(std::istream &is) {
 	  const string header_name = cfg_parameter["value"].asString();
 	  header_id_t header_id = get_header_id(header_name);
 	  action_fn->parameter_push_back_header(header_id);
+
+	  // TODO: overkill, needs something more efficient, but looks hard:
+	  phv_factory.enable_all_field_arith(header_id);
 	}
 	else if(type == "field") {
 	  const Json::Value &cfg_value_field = cfg_parameter["value"];
@@ -399,6 +403,11 @@ void P4Objects::init_objects(std::istream &is) {
 	  MeterArray *meter = get_meter_array(name);
 	  action_fn->parameter_push_back_meter_array(meter);
 	}
+	else if(type == "header_stack") {
+	  const string header_stack_name = cfg_parameter["value"].asString();
+	  header_id_t header_stack_id = get_header_stack_id(header_stack_name);
+	  action_fn->parameter_push_back_header_stack(header_stack_id);
+	}
 	else {
 	  assert(0 && "parameter not supported");
 	}
@@ -408,6 +417,11 @@ void P4Objects::init_objects(std::istream &is) {
   }
 
   // pipelines
+
+  typedef AgeingWriterImpl<TransportNanomsg> MyAgeingWriter;
+  const std::string ageing_ipc_name = "ipc:///tmp/test_bm_ageing.ipc";
+  std::shared_ptr<MyAgeingWriter> ageing_writer(new MyAgeingWriter(ageing_ipc_name));
+  ageing_monitor = std::unique_ptr<AgeingMonitor>(new AgeingMonitor(ageing_writer));
 
   const Json::Value &cfg_pipelines = cfg_root["pipelines"];
   for (const auto &cfg_pipeline : cfg_pipelines) {
@@ -448,25 +462,32 @@ void P4Objects::init_objects(std::istream &is) {
       const string match_type = cfg_table["match_type"].asString();
       const string table_type = cfg_table["type"].asString();
       const int table_size = cfg_table["max_size"].asInt();
-      const bool with_counters = cfg_table["with_counters"].asBool();
-      // for now, discard ageing
+      const Json::Value false_value(false);
+      // if attribute is missing, default is false
+      const bool with_counters =
+	cfg_table.get("with_counters", false_value).asBool();
+      const bool with_ageing =
+	cfg_table.get("support_timeout", false_value).asBool();
 
       // TODO: improve this to make it easier to create new kind of tables
       // e.g. like the register mechanism for primitives :)
       std::unique_ptr<MatchActionTable> table;
       if(table_type == "simple") {
 	table = MatchActionTable::create_match_action_table<MatchTable>(
-          match_type, table_name, table_id, table_size, key_builder, with_counters
+          match_type, table_name, table_id, table_size, key_builder,
+	  with_counters, with_ageing
         );
       }
       else if(table_type == "indirect") {
 	table = MatchActionTable::create_match_action_table<MatchTableIndirect>(
-          match_type, table_name, table_id, table_size, key_builder, with_counters
+          match_type, table_name, table_id, table_size, key_builder,
+	  with_counters, with_ageing
         );
       }
       else if(table_type == "indirect_ws") {
 	table = MatchActionTable::create_match_action_table<MatchTableIndirectWS>(
-          match_type, table_name, table_id, table_size, key_builder, with_counters
+          match_type, table_name, table_id, table_size, key_builder,
+	  with_counters, with_ageing
         );
 
 	if(!cfg_table.isMember("selector")) {
@@ -496,7 +517,13 @@ void P4Objects::init_objects(std::istream &is) {
 	}
 	typedef MatchTableIndirectWS::hash_t hash_t;
 	std::unique_ptr<Calculation<hash_t> > calc(new Calculation<hash_t>(builder));
-	calc->set_compute_fn(hash::xxh64<hash_t>);
+	// I need to find a better way to manage the different selection algos
+	// Maybe something similar to what I am doing for action primitives
+	// with a register mechanism
+	if(selector_algo == "crc16")
+	  calc->set_compute_fn(hash::crc16<hash_t>);
+	else
+	  calc->set_compute_fn(hash::xxh64<hash_t>);
 	MatchTableIndirectWS *mt_indirect_ws =
 	  static_cast<MatchTableIndirectWS *>(table->get_match_table());
 	mt_indirect_ws->set_hash(std::move(calc));
@@ -504,6 +531,8 @@ void P4Objects::init_objects(std::istream &is) {
       else {
 	assert(0 && "invalid table type");
       }
+
+      if(with_ageing) ageing_monitor->add_table(table->get_match_table());
 
       add_match_action_table(table_name, std::move(table));
     }
@@ -638,6 +667,20 @@ void P4Objects::init_objects(std::istream &is) {
     }
 
     learn_engine->list_init(list_id);
+  }
+
+  // force arith fields
+
+  if(cfg_root.isMember("force_arith")) {
+
+    const Json::Value &cfg_force_arith = cfg_root["force_arith"];
+
+    for (const auto &cfg_field : cfg_force_arith) {
+
+      const auto field = field_info(cfg_field[0].asString(),
+				    cfg_field[1].asString());
+      phv_factory.enable_field_arith(std::get<0>(field), std::get<1>(field));
+    }
   }
 }
 

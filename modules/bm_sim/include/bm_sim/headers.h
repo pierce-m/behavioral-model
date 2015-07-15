@@ -85,14 +85,18 @@ public:
 
 public:
   Header(const string &name, p4object_id_t id, const HeaderType &header_type,
-	 const std::set<int> &arith_offsets);
+	 const std::set<int> &arith_offsets, const bool metadata = false);
 
   int get_nbytes_packet() const {
     return nbytes_packet;
   }
 
-  bool is_valid() const{
-    return valid;
+  bool is_valid() const {
+    return (metadata || valid);
+  }
+
+  bool is_metadata() const {
+    return metadata;
   }
 
   void mark_valid() {
@@ -101,6 +105,11 @@ public:
 
   void mark_invalid() {
     valid = false;
+  }
+
+  void reset() {
+    for(Field &f : fields)
+      f.set(0);
   }
 
   // prefer operator [] to those functions
@@ -164,6 +173,7 @@ private:
   const HeaderType &header_type;
   std::vector<Field> fields{};
   bool valid{false};
+  bool metadata{false};
   int nbytes_phv{0};
   int nbytes_packet{0};
 };

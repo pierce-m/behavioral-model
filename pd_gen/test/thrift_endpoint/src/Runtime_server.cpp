@@ -120,6 +120,13 @@ class RuntimeHandler : virtual public RuntimeIf {
     print_spec(action_data);
   }
 
+  void bm_mt_set_entry_ttl(const std::string& table_name, const BmEntryHandle entry_handle, const int32_t timeout_ms) {
+    std::cout << "bm_mt_set_entry_ttl" << std::endl
+	      << table_name << std::endl
+	      << entry_handle << std::endl
+	      << timeout_ms << std::endl;
+  }
+
   BmMemberHandle bm_mt_indirect_add_member(const std::string& table_name, const std::string& action_name, const BmActionData& action_data) {
     std::cout << "bm_mt_indirect_add_member" << std::endl
 	      << table_name << std::endl
@@ -164,6 +171,13 @@ class RuntimeHandler : virtual public RuntimeIf {
     std::cout << "bm_mt_indirect_delete_entry" << std::endl
 	      << table_name << std::endl
 	      << entry_handle << std::endl;
+  }
+
+  void bm_mt_indirect_set_entry_ttl(const std::string& table_name, const BmEntryHandle entry_handle, const int32_t timeout_ms) {
+    std::cout << "bm_mt_indirect_set_entry_ttl" << std::endl
+	      << table_name << std::endl
+	      << entry_handle << std::endl
+	      << timeout_ms << std::endl;
   }
 
   void bm_mt_indirect_set_default_member(const std::string& table_name, const BmMemberHandle mbr_handle) {
@@ -268,8 +282,10 @@ class RuntimeHandler : virtual public RuntimeIf {
   }
 
   BmMcL2Handle bm_mc_l2_node_create(const BmMcL1Handle l1_handle, const BmMcPortMap& port_map) {
-    // Your implementation goes here
-    printf("bm_mc_l2_node_create\n");
+    std::string str(port_map.rbegin(), port_map.rbegin() + 16);
+    std::cout << "bm_mc_l2_node_create" << std::endl
+	      << l1_handle << std::endl
+	      << str << std::endl;
     return 0;
   }
 
@@ -305,6 +321,11 @@ class RuntimeHandler : virtual public RuntimeIf {
   void bm_dev_mgr_remove_port(const int32_t port_num) {
     // Your implementation goes here
     printf("bm_dev_mgr_remove_port\n");
+  }
+
+  void bm_dump_table(std::string& _return, const std::string& table_name) {
+    // Your implementation goes here
+    printf("bm_dump_table\n");
   }
 
 };

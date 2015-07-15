@@ -20,7 +20,7 @@
 
 namespace cpp bm_runtime
 
-typedef i32 BmEntryHandle
+typedef i64 BmEntryHandle
 typedef list<binary> BmActionData
 
 typedef i32 BmMemberHandle
@@ -90,18 +90,20 @@ struct BmMeterRateConfig {
 enum TableOperationErrorCode {
   TABLE_FULL = 1,
   INVALID_HANDLE = 2,
-  COUNTERS_DISABLED = 3,
-  INVALID_TABLE_NAME = 4,
-  INVALID_ACTION_NAME = 5,
-  WRONG_TABLE_TYPE = 6,
-  INVALID_MBR_HANDLE = 7,
-  MBR_STILL_USED = 8,
-  MBR_ALREADY_IN_GRP = 9,
-  MBR_NOT_IN_GRP = 10,
-  INVALID_GRP_HANDLE = 11,
-  GRP_STILL_USED = 12,
-  EMPTY_GRP = 13,
-  ERROR = 14,
+  EXPIRED_HANDLE = 3,
+  COUNTERS_DISABLED = 4,
+  AGEING_DISABLED = 5,
+  INVALID_TABLE_NAME = 6,
+  INVALID_ACTION_NAME = 7,
+  WRONG_TABLE_TYPE = 8,
+  INVALID_MBR_HANDLE = 9,
+  MBR_STILL_USED = 10,
+  MBR_ALREADY_IN_GRP = 11,
+  MBR_NOT_IN_GRP = 12,
+  INVALID_GRP_HANDLE = 13,
+  GRP_STILL_USED = 14,
+  EMPTY_GRP = 15,
+  ERROR = 16,
 }
 
 exception InvalidTableOperation {
@@ -182,6 +184,12 @@ service Runtime {
     4:BmActionData action_data
   ) throws (1:InvalidTableOperation ouch),
 
+  void bm_mt_set_entry_ttl(
+    1:string table_name
+    2:BmEntryHandle entry_handle,
+    3:i32 timeout_ms
+  ) throws (1:InvalidTableOperation ouch),
+
   // indirect tables
 
   BmMemberHandle bm_mt_indirect_add_member(
@@ -218,6 +226,12 @@ service Runtime {
   void bm_mt_indirect_delete_entry(
     1:string table_name,
     2:BmEntryHandle entry_handle
+  ) throws (1:InvalidTableOperation ouch),
+
+  void bm_mt_indirect_set_entry_ttl(
+    1:string table_name
+    2:BmEntryHandle entry_handle,
+    3:i32 timeout_ms
   ) throws (1:InvalidTableOperation ouch),
 
   void bm_mt_indirect_set_default_member(
@@ -358,4 +372,10 @@ service Runtime {
   void bm_dev_mgr_remove_port(
     1:i32 port_num
   ) throws (1:InvalidDevMgrOperation ouch)
+
+  // debug functions
+
+  string bm_dump_table(
+    1:string table_name
+  )
 }

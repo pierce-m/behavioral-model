@@ -85,7 +85,10 @@ protected:
 
   Packet get_pkt(int length) {
     // dummy packet, won't be parsed
-    return Packet(0, 0, 0, length, PacketBuffer(length * 2));
+    Packet packet(0, 0, 0, length, PacketBuffer(length * 2));
+    packet.get_phv()->get_header(testHeader1).mark_valid();
+    packet.get_phv()->get_header(testHeader2).mark_valid();
+    return packet;
   }
 
   virtual void SetUp() {
@@ -225,6 +228,28 @@ TYPED_TEST(TableSizeOne, DeleteEntry) {
   ASSERT_EQ(MatchErrorCode::SUCCESS, rc);
 }
 
+TYPED_TEST(TableSizeOne, DeleteEntryHandleUpdate) {
+  std::string key_ = "\xaa\xaa";
+  ByteContainer key("0xaaaa");
+  entry_handle_t handle_1, handle_2;
+  MatchErrorCode rc;
+
+  rc = this->add_entry(key_, &handle_1);
+  ASSERT_EQ(MatchErrorCode::SUCCESS, rc);
+
+  rc = this->table->delete_entry(handle_1);
+  ASSERT_EQ(MatchErrorCode::SUCCESS, rc);
+  ASSERT_EQ(0u, this->table->get_num_entries());
+
+  rc = this->add_entry(key_, &handle_2);
+  ASSERT_EQ(MatchErrorCode::SUCCESS, rc);
+
+  ASSERT_NE(handle_1, handle_2);
+
+  rc = this->table->delete_entry(handle_1);
+  ASSERT_EQ(MatchErrorCode::EXPIRED_HANDLE, rc);
+}
+
 TYPED_TEST(TableSizeOne, LookupEntry) {
   std::string key_ = "\x0a\xba";
   ByteContainer key("0x0aba");
@@ -349,7 +374,9 @@ TYPED_TEST(TableSizeOne, Valid) {
   Field &f = pkt.get_phv()->get_field(this->testHeader1, 0);
   f.set("0xaba");
   Header &h2 = pkt.get_phv()->get_header(this->testHeader2);
-  ASSERT_FALSE(h2.is_valid());
+  EXPECT_TRUE(h2.is_valid());
+  
+  h2.mark_invalid();
 
   this->table_w_valid->lookup(pkt, &hit, &lookup_handle);
   ASSERT_FALSE(hit);
@@ -385,8 +412,10 @@ protected:
 
     key_builder.push_back_field(testHeader1, 0, 16);
 
+    // with counters, without ageing
     table = MatchTableIndirect::create("exact", "test_table", 0,
-				       table_size, key_builder, true);
+				       table_size, key_builder,
+				       true, false);
     table->set_next_node(0, nullptr);
   }
 
@@ -412,7 +441,10 @@ protected:
 
   Packet get_pkt(int length) {
     // dummy packet, won't be parsed
-    return Packet(0, 0, 0, length, PacketBuffer(length * 2));
+    Packet packet(0, 0, 0, length, PacketBuffer(length * 2));
+    packet.get_phv()->get_header(testHeader1).mark_valid();
+    packet.get_phv()->get_header(testHeader2).mark_valid();
+    return packet;
   }
 
   virtual void SetUp() {
@@ -469,7 +501,7 @@ TEST_F(TableIndirect, AddEntry) {
 }
 
 TEST_F(TableIndirect, DeleteMember) {
-  std::string key("\x0a\ba");
+  std::string key("\x0a\xba");
   MatchErrorCode rc;
   entry_handle_t handle;
   mbr_hdl_t mbr;
@@ -628,8 +660,10 @@ protected:
 
     key_builder.push_back_field(testHeader1, 0, 16);
 
+    // with counters, without ageing
     table = MatchTableIndirectWS::create("exact", "test_table", 0,
-					 table_size, key_builder, true);
+					 table_size, key_builder,
+					 true, false);
     table->set_next_node(0, nullptr);
 
     BufBuilder builder;
@@ -668,7 +702,10 @@ protected:
 
   Packet get_pkt(int length) {
     // dummy packet, won't be parsed
-    return Packet(0, 0, 0, length, PacketBuffer(length * 2));
+    Packet packet(0, 0, 0, length, PacketBuffer(length * 2));
+    packet.get_phv()->get_header(testHeader1).mark_valid();
+    packet.get_phv()->get_header(testHeader2).mark_valid();
+    return packet;
   }
 
   virtual void SetUp() {

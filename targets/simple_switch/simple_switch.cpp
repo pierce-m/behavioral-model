@@ -108,6 +108,9 @@ void SimpleSwitch::ingress_thread() {
     std::unique_ptr<Packet> packet;
     input_buffer.pop_back(&packet);
     phv = packet->get_phv();
+    // many current P4 programs assume this
+    // it is also part of the original P4 spec
+    phv->reset_metadata();
     SIMPLELOG << "processing packet " << packet->get_packet_id() << std::endl;
 
     // setting standard metadata
@@ -124,19 +127,15 @@ void SimpleSwitch::ingress_thread() {
 
     Field &f_egress_spec = phv->get_field("standard_metadata.egress_spec");
     int egress_spec = f_egress_spec.get_int();
-    f_egress_spec.set(0);
 
     Field &f_clone_spec = phv->get_field("standard_metadata.clone_spec");
     int clone_spec = f_clone_spec.get_int();
-    f_clone_spec.set(0);
 
     Field &f_learn_id = phv->get_field("intrinsic_metadata.lf_field_list");
     int learn_id = f_learn_id.get_int();
-    f_learn_id.set(0);
 
-    Field &f_mgid = phv->get_field("intrinsic_metadata.eg_mcast_group");
+    Field &f_mgid = phv->get_field("intrinsic_metadata.mcast_grp");
     unsigned int mgid = f_mgid.get_uint();
-    f_mgid.set(0);
 
     packet_id_t copy_id = 1;
     int egress_port;
@@ -159,12 +158,15 @@ void SimpleSwitch::ingress_thread() {
 
     // MULTICAST
     if(mgid != 0) {
+      SIMPLELOG << "multicast\n";
+      Field &f_rid = phv->get_field("intrinsic_metadata.egress_rid");
       const auto pre_out = pre->replicate({mgid});
       for(const auto &out : pre_out) {
 	egress_port = out.egress_port;
-	if(ingress_port == egress_port) continue; // pruning
+	// if(ingress_port == egress_port) continue; // pruning
 	SIMPLELOG << "replicating packet out of port " << egress_port
 		  << std::endl;
+	f_rid.set(out.rid);
 	std::unique_ptr<Packet> packet_copy(new Packet(packet->clone(copy_id++)));
 	packet_copy->set_egress_port(egress_port);
 	egress_buffer.push_front(std::move(packet_copy));
@@ -197,7 +199,21 @@ void SimpleSwitch::egress_thread() {
     egress_buffer.pop_back(&packet);
     phv = packet->get_phv();
 
+    int egress_port = packet->get_egress_port();
+    phv->get_field("standard_metadata.egress_port").set(egress_port);
+
+    Field &f_egress_spec = phv->get_field("standard_metadata.egress_spec");
+    f_egress_spec.set(0);
+
     egress_mau->apply(packet.get());
+
+    // TODO: should not be done like this in egress pipeline
+    int egress_spec = f_egress_spec.get_int();
+    if(egress_spec == 511) {  // drop packet
+      SIMPLELOG << "dropping packet\n";
+      continue;
+    }
+
     deparser->deparse(packet.get());
 
     // TODO: egress cloning

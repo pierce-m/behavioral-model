@@ -47,7 +47,7 @@ Switch::init_from_command_line_options(int argc, char *argv[]) {
   OptionsParser parser;
   parser.parse(argc, argv);
   init_objects(parser.config_file_path);
-  int port_num = 1;
+  int port_num = 0;
   for(const auto &iface : parser.ifaces) {
     std::cout << "Adding interface " << iface
 	      << " as port " << port_num << std::endl;
@@ -131,6 +131,19 @@ Switch::mt_modify_entry(
   const ActionFn *action = p4objects_rt->get_action(action_name);
   assert(action);
   return table->modify_entry(handle, action, std::move(action_data));
+}
+
+MatchErrorCode
+Switch::mt_set_entry_ttl(
+    const std::string &table_name,
+    entry_handle_t handle,
+    unsigned int ttl_ms
+)
+{
+  MatchTableAbstract *abstract_table = 
+    p4objects_rt->get_abstract_match_table(table_name);
+  if(!abstract_table) return MatchErrorCode::INVALID_TABLE_NAME;
+  return abstract_table->set_entry_ttl(handle, ttl_ms);
 }
 
 MatchErrorCode
@@ -230,6 +243,19 @@ Switch::mt_indirect_delete_entry(
   if((rc = get_mt_indirect(table_name, &table)) != MatchErrorCode::SUCCESS)
     return rc;
   return table->delete_entry(handle);
+}
+
+MatchErrorCode
+Switch::mt_indirect_set_entry_ttl(
+    const std::string &table_name,
+    entry_handle_t handle,
+    unsigned int ttl_ms
+)
+{
+  MatchTableAbstract *abstract_table = 
+    p4objects_rt->get_abstract_match_table(table_name);
+  if(!abstract_table) return MatchErrorCode::INVALID_TABLE_NAME;
+  return abstract_table->set_entry_ttl(handle, ttl_ms);
 }
 
 MatchErrorCode
@@ -401,7 +427,7 @@ RuntimeInterface::ErrorCode Switch::load_new_config(const std::string &new_confi
   // check that there is no ongoing config swap
   if(p4objects != p4objects_rt) return ONGOING_SWAP;
   p4objects_rt = std::make_shared<P4Objects>();
-  std::stringstream ss(new_config);
+  std::istringstream ss(new_config);
   p4objects_rt->init_objects(ss);
   return SUCCESS;
 }
@@ -413,6 +439,18 @@ RuntimeInterface::ErrorCode Switch::swap_configs() {
   if(p4objects == p4objects_rt) return NO_ONGOING_SWAP;
   swap_ordered = true;
   return SUCCESS;
+}
+
+MatchErrorCode Switch::dump_table(
+  const std::string& table_name,
+  std::ostream &stream
+) const {
+  boost::shared_lock<boost::shared_mutex> lock(request_mutex);
+  MatchTableAbstract *abstract_table = 
+    p4objects_rt->get_abstract_match_table(table_name);
+  assert(abstract_table);
+  abstract_table->dump(stream);
+  return MatchErrorCode::SUCCESS;
 }
 
 int Switch::do_swap() {
@@ -427,4 +465,9 @@ int Switch::do_swap() {
 LearnEngine *Switch::get_learn_engine()
 {
   return p4objects->get_learn_engine();
+}
+
+AgeingMonitor *Switch::get_ageing_monitor()
+{
+  return p4objects->get_ageing_monitor();
 }
