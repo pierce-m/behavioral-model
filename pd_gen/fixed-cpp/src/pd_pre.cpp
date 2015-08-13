@@ -27,30 +27,30 @@ extern pd_conn_mgr_t *conn_mgr_state;
 
 extern "C" {
 
-p4_pd_status_t mc_create_session(p4_pd_sess_hdl_t *sess_hdl) {
+p4_pd_status_t p4_pd_mc_create_session(p4_pd_sess_hdl_t *sess_hdl) {
   (void) sess_hdl;
   return 0;
 }
 
-p4_pd_status_t mc_delete_session(p4_pd_sess_hdl_t sess_hdl) {
+p4_pd_status_t p4_pd_mc_destroy_session(p4_pd_sess_hdl_t sess_hdl) {
   (void) sess_hdl;
   return 0;
 }
 
-p4_pd_status_t mc_mgrp_create(
+p4_pd_status_t p4_pd_mc_mgrp_create(
   p4_pd_sess_hdl_t session, int8_t device,
   mgrp_id_t mgid, mc_mgrp_hdl_t *mgrp_hdl
 ) {
   (void) session;
-  *mgrp_hdl = pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_mgrp_create(mgid);
+  *mgrp_hdl = pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_mgrp_create(session, device, mgid);
   return 0; // TODO
 }
 
-p4_pd_status_t mc_mgrp_destroy(
+p4_pd_status_t p4_pd_mc_mgrp_destroy(
   p4_pd_sess_hdl_t session, int8_t device, mc_mgrp_hdl_t mgrp_hdl
 ) {
   (void) session;
-  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_mgrp_destroy(mgrp_hdl);
+  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_mgrp_destroy(session, device, mgrp_hdl);
   return 0; // TODO
 }
 
@@ -70,7 +70,7 @@ std::string convert_map(const uint8_t *input, const size_t size) {
 
 }
 
-p4_pd_status_t mc_node_create(
+p4_pd_status_t p4_pd_mc_node_create(
   p4_pd_sess_hdl_t session, int8_t device,
   mgrp_rid_t rid, const uint8_t *port_map, const uint8_t *lag_map,
   mc_node_hdl_t *node_hdl
@@ -78,54 +78,53 @@ p4_pd_status_t mc_node_create(
   (void) session;
   std::string port_map_ = convert_map(port_map, PRE_PORTS_MAX);
   std::string lag_map_ = convert_map(lag_map, PRE_LAG_MAX);
-  *node_hdl = pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_create(rid, port_map_, lag_map_);
+  *node_hdl = pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_create(session, device, rid, port_map_, lag_map_);
   return 0; // TODO
 }
 
-p4_pd_status_t mc_associate_node(
+p4_pd_status_t p4_pd_mc_associate_node(
   p4_pd_sess_hdl_t session, int8_t device,
   mc_mgrp_hdl_t mgrp_hdl, mc_node_hdl_t hdl
 ) {
   (void) session;
-  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_associate(mgrp_hdl, hdl);
+  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_associate(session, device, mgrp_hdl, hdl);
   return 0; // TODO
 }
 
-p4_pd_status_t mc_dissociate_node(
+p4_pd_status_t p4_pd_mc_dissociate_node(
   p4_pd_sess_hdl_t session, int8_t device,
-  mc_mgrp_hdl_t mgrp_hdl, mc_node_hdl_t node_hdl
+  mc_mgrp_hdl_t mgrp_hdl, mc_node_hdl_t hdl
 ) {
-  // TODO: needed ?
-  (void) session; (void) mgrp_hdl; (void) node_hdl;
+  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_dissociate(session, device, mgrp_hdl, hdl);
   return 0;
 }
 
-p4_pd_status_t mc_node_destroy(
+p4_pd_status_t p4_pd_mc_node_destroy(
   p4_pd_sess_hdl_t session, int8_t device, mc_node_hdl_t node_hdl
 ) {
   (void) session;
-  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_destroy(node_hdl);
+  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_destroy(session, device, node_hdl);
   return 0; // TODO
 }
 
-p4_pd_status_t mc_node_update(
+p4_pd_status_t p4_pd_mc_node_update(
   p4_pd_sess_hdl_t session, int8_t device, mc_node_hdl_t node_hdl,
   const uint8_t *port_map, const uint8_t *lag_map
 ) {
   (void) session;
   std::string port_map_ = convert_map(port_map, PRE_PORTS_MAX);
   std::string lag_map_ = convert_map(lag_map, PRE_LAG_MAX);
-  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_update(node_hdl, port_map_, lag_map_);
+  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_node_update(session, device, node_hdl, port_map_, lag_map_);
   return 0; // TODO
 }
 
-p4_pd_status_t mc_set_lag_membership(
+p4_pd_status_t p4_pd_mc_set_lag_membership(
   p4_pd_sess_hdl_t session, int8_t device,
   mgrp_lag_id_t lag_id, const uint8_t *port_map
 ) {
   (void) session;
   std::string port_map_ = convert_map(port_map, PRE_PORTS_MAX);
-  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_set_lag_membership(lag_id, port_map_);
+  pd_conn_mgr_mc_client(conn_mgr_state, device)->bm_mc_set_lag_membership(sssion, device, lag_id, port_map_);
   return 0; // TODO
 }
 

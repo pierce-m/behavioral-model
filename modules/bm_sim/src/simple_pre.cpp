@@ -26,8 +26,13 @@ using std::copy;
 using std::string;
 
 McSimplePre::McReturnCode
-McSimplePre::mc_mgrp_create(const mgrp_t mgid, mgrp_hdl_t *mgrp_hdl)
+McSimplePre::mc_mgrp_create(const mc_sess_hdl_t shdl,
+                            const mc_dev_t dev,
+                            const mgrp_t mgid,
+                            mgrp_hdl_t *mgrp_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock(mgid_lock);
   size_t num_entries = mgid_entries.size();
   if (num_entries >= MGID_TABLE_SIZE) {
@@ -44,8 +49,12 @@ McSimplePre::mc_mgrp_create(const mgrp_t mgid, mgrp_hdl_t *mgrp_hdl)
 }
 
 McSimplePre::McReturnCode
-McSimplePre::mc_mgrp_destroy(mgrp_hdl_t mgrp_hdl)
+McSimplePre::mc_mgrp_destroy(const mc_sess_hdl_t shdl,
+                             const mc_dev_t dev,
+                             const mgrp_hdl_t mgrp_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock(mgid_lock);
   mgid_entries.erase(mgrp_hdl);
   if (pre_debug) {
@@ -55,10 +64,14 @@ McSimplePre::mc_mgrp_destroy(mgrp_hdl_t mgrp_hdl)
 }
 
 McSimplePre::McReturnCode
-McSimplePre::mc_node_create(const rid_t rid,
+McSimplePre::mc_node_create(const mc_sess_hdl_t shdl,
+                            const mc_dev_t dev,
+                            const rid_t rid,
                             const PortMap &portmap,
                             l1_hdl_t *l1_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(l1_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l2_lock);
   l2_hdl_t l2_hdl;
@@ -91,8 +104,13 @@ McSimplePre::mc_node_create(const rid_t rid,
 }
 
 McSimplePre::McReturnCode
-McSimplePre::mc_node_associate(const mgrp_hdl_t mgrp_hdl, const l1_hdl_t l1_hdl)
+McSimplePre::mc_node_associate(const mc_sess_hdl_t shdl,
+                               const mc_dev_t dev,
+                               const mgrp_hdl_t mgrp_hdl,
+                               const l1_hdl_t l1_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(mgid_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l1_lock);
   if (!l1_handles.valid_handle(l1_hdl)) {
@@ -110,8 +128,13 @@ McSimplePre::mc_node_associate(const mgrp_hdl_t mgrp_hdl, const l1_hdl_t l1_hdl)
 }
 
 McSimplePre::McReturnCode
-McSimplePre::mc_node_dissociate(const mgrp_hdl_t mgrp_hdl, const l1_hdl_t l1_hdl)
+McSimplePre::mc_node_dissociate(const mc_sess_hdl_t shdl,
+                                const mc_dev_t dev,
+                                const mgrp_hdl_t mgrp_hdl,
+                                const l1_hdl_t l1_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(mgid_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l1_lock);
   if (!l1_handles.valid_handle(l1_hdl)) {
@@ -132,8 +155,12 @@ McSimplePre::mc_node_dissociate(const mgrp_hdl_t mgrp_hdl, const l1_hdl_t l1_hdl
 }
 
 McSimplePre::McReturnCode
-McSimplePre::mc_node_destroy(const l1_hdl_t l1_hdl)
+McSimplePre::mc_node_destroy(const mc_sess_hdl_t shdl,
+                             const mc_dev_t dev,
+                             const l1_hdl_t l1_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(l1_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l2_lock);
   rid_t rid;
@@ -160,9 +187,13 @@ McSimplePre::mc_node_destroy(const l1_hdl_t l1_hdl)
 }
 
 McSimplePre::McReturnCode
-McSimplePre::mc_node_update(const l1_hdl_t l1_hdl,
+McSimplePre::mc_node_update(const mc_sess_hdl_t shdl,
+                            const mc_dev_t dev,
+                            const l1_hdl_t l1_hdl,
 			    const PortMap &port_map)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(l1_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l2_lock);
   if (!l1_handles.valid_handle(l1_hdl)) {

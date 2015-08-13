@@ -36,6 +36,8 @@ public:
   typedef uintptr_t mgrp_hdl_t;
   typedef uintptr_t l1_hdl_t;
   typedef uintptr_t l2_hdl_t;
+  typedef unsigned int mc_sess_hdl_t;
+  typedef char mc_dev_t;
   
 public:
   enum McReturnCode {
@@ -64,17 +66,44 @@ public:
   typedef McPre::Set<LAG_MAP_SIZE> LagMap;
   
   McSimplePre() {}
-  McReturnCode mc_mgrp_create(const mgrp_t, mgrp_hdl_t *);
-  McReturnCode mc_mgrp_destroy(const mgrp_hdl_t);
-  McReturnCode mc_node_create(const rid_t,
+  McReturnCode mc_mgrp_create(const mc_sess_hdl_t,
+                              const mc_dev_t,
+                              const mgrp_t, mgrp_hdl_t *);
+
+  McReturnCode mc_mgrp_destroy(const mc_sess_hdl_t,
+                               const mc_dev_t,
+                               const mgrp_hdl_t);
+
+  McReturnCode mc_node_create(const mc_sess_hdl_t,
+                              const mc_dev_t,
+                              const rid_t,
 		              const PortMap &port_map,
                               l1_hdl_t *l1_hdl);
-  McReturnCode mc_node_associate(const mgrp_hdl_t, const l1_hdl_t);
-  McReturnCode mc_node_dissociate(const mgrp_hdl_t, const l1_hdl_t);
-  McReturnCode mc_node_disassociate(const mgrp_hdl_t, const l1_hdl_t);
-  McReturnCode mc_node_destroy(const l1_hdl_t);
-  McReturnCode mc_node_update(const l1_hdl_t l1_hdl,
+
+  McReturnCode mc_node_associate(const mc_sess_hdl_t,
+                                 const mc_dev_t,
+                                 const mgrp_hdl_t,
+                                 const l1_hdl_t);
+
+  McReturnCode mc_node_dissociate(const mc_sess_hdl_t,
+                                  const mc_dev_t,
+                                  const mgrp_hdl_t,
+                                  const l1_hdl_t);
+
+  McReturnCode mc_node_disassociate(const mc_sess_hdl_t,
+                                    const mc_dev_t,
+                                    const mgrp_hdl_t,
+                                    const l1_hdl_t);
+
+  McReturnCode mc_node_destroy(const mc_sess_hdl_t,
+                               const mc_dev_t,
+                               const l1_hdl_t);
+
+  McReturnCode mc_node_update(const mc_sess_hdl_t,
+                              const mc_dev_t,
+                              const l1_hdl_t l1_hdl,
 			      const PortMap &port_map);
+
   std::vector<McOut> replicate(const McIn) const;
   
   McSimplePre(const McSimplePre &other) = delete;

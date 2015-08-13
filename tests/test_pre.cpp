@@ -37,8 +37,10 @@ TEST(McSimplePre, Replicate)
   std::vector<McSimplePre::McOut> egress_info;
   unsigned int count = 0;
   unsigned int nodes = 3;
+  McSimplePre::mc_sess_hdl_t shdl = 0;
+  McSimplePre::mc_dev_t dev = 0;
 
-  rc = pre.mc_mgrp_create(mgid, &mgrp_hdl);
+  rc = pre.mc_mgrp_create(shdl, dev, mgid, &mgrp_hdl);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
 
   McSimplePre::PortMap port_maps[nodes];
@@ -48,10 +50,10 @@ TEST(McSimplePre, Replicate)
     for (unsigned int j = 0; j < port_list1[i].size(); j++) {
       port_map[port_list1[i][j]] = 1;
     }
-    rc = pre.mc_node_create(rid_list[i], port_map, &l1_hdl);
+    rc = pre.mc_node_create(shdl, dev, rid_list[i], port_map, &l1_hdl);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
     l1_hdl_list.push_back(l1_hdl);
-    rc = pre.mc_node_associate(mgrp_hdl, l1_hdl);
+    rc = pre.mc_node_associate(shdl, dev, mgrp_hdl, l1_hdl);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
   }
 
@@ -88,7 +90,7 @@ TEST(McSimplePre, Replicate)
   McSimplePre::PortMap &port_map_2 = port_maps[2];
   port_map_2[7] = 0;
   port_map_2[8] = 0;
-  rc = pre.mc_node_update(l1_hdl_list[2], port_map_2);
+  rc = pre.mc_node_update(shdl, dev, l1_hdl_list[2], port_map_2);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
   ingress_info.mgid = mgid;
   
@@ -123,12 +125,12 @@ TEST(McSimplePre, Replicate)
   
   // cleanup
   for (unsigned int i = 0; i < l1_hdl_list.size(); i++) {
-    rc = pre.mc_node_dissociate(mgrp_hdl, l1_hdl_list[i]);
+    rc = pre.mc_node_dissociate(shdl, dev, mgrp_hdl, l1_hdl_list[i]);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
-    rc = pre.mc_node_destroy(l1_hdl_list[i]);
+    rc = pre.mc_node_destroy(shdl, dev, l1_hdl_list[i]);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
   }
-  rc = pre.mc_mgrp_destroy(mgrp_hdl);
+  rc = pre.mc_mgrp_destroy(shdl, dev, mgrp_hdl);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
 }
 
@@ -154,8 +156,10 @@ TEST(McSimplePreLAG, Replicate)
   unsigned int count = 0;
   unsigned int member_count = 0;
   unsigned int nodes = 3;
+  McSimplePre::mc_sess_hdl_t shdl = 0;
+  McSimplePre::mc_dev_t dev = 0;
 
-  rc = pre.mc_mgrp_create(mgid, &mgrp_hdl);
+  rc = pre.mc_mgrp_create(shdl, dev, mgid, &mgrp_hdl);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
 
   // Update lag membership
@@ -164,7 +168,7 @@ TEST(McSimplePreLAG, Replicate)
     for (unsigned int j = 0; j < lag_port_list1[i].size(); j++) {
       lag_port_map[lag_port_list1[i][j]] = 1;
     }
-    rc = pre.mc_set_lag_membership(lag_id_slist1[i], lag_port_map);
+    rc = pre.mc_set_lag_membership(shdl, dev, lag_id_slist1[i], lag_port_map);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
   }
 
@@ -184,10 +188,10 @@ TEST(McSimplePreLAG, Replicate)
       }
     }
 
-    rc = pre.mc_node_create(rid_list[i], port_maps[i], lag_maps[i], &l1_hdl);
+    rc = pre.mc_node_create(shdl, dev, rid_list[i], port_maps[i], lag_maps[i], &l1_hdl);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
     l1_hdl_list.push_back(l1_hdl);
-    rc = pre.mc_node_associate(mgrp_hdl, l1_hdl);
+    rc = pre.mc_node_associate(shdl, dev, mgrp_hdl, l1_hdl);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
   }
 
@@ -252,7 +256,7 @@ TEST(McSimplePreLAG, Replicate)
     for (unsigned int j = 0; j < lag_port_list2[i].size(); j++) {
       lag_port_map[lag_port_list2[i][j]] = 1;
     }
-    rc = pre.mc_set_lag_membership(lag_id_slist2[i], lag_port_map);
+    rc = pre.mc_set_lag_membership(shdl, dev, lag_id_slist2[i], lag_port_map);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
   }
 
@@ -260,12 +264,12 @@ TEST(McSimplePreLAG, Replicate)
   McSimplePre::PortMap &port_map_2 = port_maps[2];
   port_map_2[7] = 0;
   port_map_2[8] = 0;
-  rc = pre.mc_node_update(l1_hdl_list[2], port_maps[2], lag_maps[2]);
+  rc = pre.mc_node_update(shdl, dev, l1_hdl_list[2], port_maps[2], lag_maps[2]);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
 
   McSimplePre::LagMap &lag_map_1 = lag_maps[1];
   lag_map_1[24] = 0;
-  rc = pre.mc_node_update(l1_hdl_list[1], port_maps[1], lag_maps[1]);
+  rc = pre.mc_node_update(shdl, dev, l1_hdl_list[1], port_maps[1], lag_maps[1]);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
 
 /*
@@ -324,11 +328,11 @@ TEST(McSimplePreLAG, Replicate)
   
   // cleanup
   for (unsigned int i = 0; i < l1_hdl_list.size(); i++) {
-    rc = pre.mc_node_dissociate(mgrp_hdl, l1_hdl_list[i]);
+    rc = pre.mc_node_dissociate(shdl, dev, mgrp_hdl, l1_hdl_list[i]);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
-    rc = pre.mc_node_destroy(l1_hdl_list[i]);
+    rc = pre.mc_node_destroy(shdl, dev, l1_hdl_list[i]);
     ASSERT_EQ(rc, McSimplePre::SUCCESS);
   }
-  rc = pre.mc_mgrp_destroy(mgrp_hdl);
+  rc = pre.mc_mgrp_destroy(shdl, dev, mgrp_hdl);
   ASSERT_EQ(rc, McSimplePre::SUCCESS);
 }

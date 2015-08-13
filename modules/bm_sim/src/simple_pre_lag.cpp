@@ -26,11 +26,15 @@ using std::copy;
 using std::string;
 
 McSimplePre::McReturnCode
-McSimplePreLAG::mc_node_create(const rid_t rid,
+McSimplePreLAG::mc_node_create(const mc_sess_hdl_t shdl,
+                               const mc_dev_t dev,
+                               const rid_t rid,
                                const PortMap &port_map,
                                const LagMap &lag_map,
                                l1_hdl_t *l1_hdl)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(l1_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l2_lock);
   l2_hdl_t l2_hdl;
@@ -63,10 +67,14 @@ McSimplePreLAG::mc_node_create(const rid_t rid,
 }
 
 McSimplePre::McReturnCode
-McSimplePreLAG::mc_node_update(const l1_hdl_t l1_hdl,
+McSimplePreLAG::mc_node_update(const mc_sess_hdl_t shdl,
+                               const mc_dev_t dev,
+                               const l1_hdl_t l1_hdl,
 			       const PortMap &port_map,
                                const LagMap &lag_map)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock1(l1_lock);
   boost::unique_lock<boost::shared_mutex> lock2(l2_lock);
   if (!l1_handles.valid_handle(l1_hdl)) {
@@ -85,9 +93,13 @@ McSimplePreLAG::mc_node_update(const l1_hdl_t l1_hdl,
 }
 
 McSimplePre::McReturnCode
-McSimplePreLAG::mc_set_lag_membership(const lag_id_t lag_index,
+McSimplePreLAG::mc_set_lag_membership(const mc_sess_hdl_t shdl,
+                                      const mc_dev_t dev,
+                                      const lag_id_t lag_index,
                                       const PortMap &port_map)
 {
+  (void)shdl;
+  (void)dev;
   boost::unique_lock<boost::shared_mutex> lock(lag_lock);
   uint16_t member_count = 0;
   if (lag_index > LAG_MAX_ENTRIES) {

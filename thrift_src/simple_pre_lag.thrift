@@ -27,6 +27,8 @@ typedef i32 BmMcRid
 typedef i32 BmMcMgrpHandle
 typedef i32 BmMcL1Handle
 typedef i16 BmMcLagIndex
+typedef i32 BmMcSessionHandle
+typedef byte BmMcDevId
 typedef string BmMcPortMap // string of 0s and 1s
 typedef string BmMcLagMap // string of 0s and 1s
 
@@ -46,41 +48,57 @@ exception InvalidMcOperation {
 service SimplePreLAG {
 
   BmMcMgrpHandle bm_mc_mgrp_create(
-    1:BmMcMgrp mgrp
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcMgrp mgrp
   ) throws (1:InvalidMcOperation ouch),
 
   void bm_mc_mgrp_destroy(
-    1:BmMcMgrpHandle mgrp_handle
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcMgrpHandle mgrp_handle
   ) throws (1:InvalidMcOperation ouch),
 
   BmMcL1Handle bm_mc_node_create(
-    1:BmMcRid rid,
-    2:BmMcPortMap port_map,
-    3:BmMcLagMap lag_map
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcRid rid,
+    4:BmMcPortMap port_map,
+    5:BmMcLagMap lag_map
   ) throws (1:InvalidMcOperation ouch),
 
   void bm_mc_node_associate(
-    1:BmMcMgrpHandle mgrp_handle,
-    2:BmMcL1Handle l1_handle
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcMgrpHandle mgrp_handle,
+    4:BmMcL1Handle l1_handle
   ) throws (1:InvalidMcOperation ouch),
 
   void bm_mc_node_dissociate(
-    1:BmMcMgrpHandle mgrp_handle,
-    2:BmMcL1Handle l1_handle
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcMgrpHandle mgrp_handle,
+    4:BmMcL1Handle l1_handle
   ) throws (1:InvalidMcOperation ouch),
 
   void bm_mc_node_destroy(
-    1:BmMcL1Handle l1_handle
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcL1Handle l1_handle
   ) throws (1:InvalidMcOperation ouch),
 
   void bm_mc_node_update(
-    1:BmMcL1Handle l1_handle,
-    2:BmMcPortMap port_map,
-    3:BmMcLagMap lag_map
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcL1Handle l1_handle,
+    4:BmMcPortMap port_map,
+    5:BmMcLagMap lag_map
   ) throws (1:InvalidMcOperation ouch),
 
   void bm_mc_set_lag_membership(
-    1:BmMcLagIndex lag_index,
-    2:BmMcPortMap port_map
+    1:BmMcSessionHandle shdl,
+    2:BmMcDevId dev,
+    3:BmMcLagIndex lag_index,
+    4:BmMcPortMap port_map
   ) throws (1:InvalidMcOperation ouch),
 }

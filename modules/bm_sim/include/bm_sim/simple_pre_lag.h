@@ -30,15 +30,22 @@ public:
   static constexpr int LAG_MAX_ENTRIES = 256;
   typedef uint16_t lag_id_t;
 
-  McReturnCode mc_node_create(const rid_t rid,
+  McReturnCode mc_node_create(const mc_sess_hdl_t shdl,
+                              const mc_dev_t dev,
+                              const rid_t rid,
                               const PortMap &port_map,
                               const LagMap &lag_map,
                               l1_hdl_t *l1_hdl);
-  McReturnCode mc_node_update(const l1_hdl_t l1_hdl,
+
+  McReturnCode mc_node_update(const mc_sess_hdl_t shdl,
+                              const mc_dev_t dev,
+                              const l1_hdl_t l1_hdl,
                               const PortMap &port_map,
                               const LagMap &lag_map);
 
-  McReturnCode mc_set_lag_membership(const lag_id_t lag_index,
+  McReturnCode mc_set_lag_membership(const mc_sess_hdl_t shdl,
+                                     const mc_dev_t dev,
+                                     const lag_id_t lag_index,
                                      const PortMap &port_map);
 
   std::vector<McOut> replicate(const McIn) const;
