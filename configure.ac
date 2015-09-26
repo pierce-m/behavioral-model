@@ -79,10 +79,12 @@ AC_CONFIG_FILES([Makefile
 		modules/bm_sim/Makefile
 		modules/bm_runtime/Makefile
 		modules/BMI/Makefile
+		modules/packet_pipe/Makefile
 		targets/Makefile
 		targets/simple_router/Makefile
 		targets/l2_switch/Makefile
 		targets/l2_switch/learn_client/Makefile
 		targets/simple_switch/Makefile
-		tests/Makefile])
+		tests/Makefile
+		test_pktpipe/Makefile])
 AC_OUTPUT

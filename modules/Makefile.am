@@ -1,6 +1,6 @@
-SUBDIRS = bf_lpm_trie BMI bm_sim bm_runtime
+SUBDIRS = bf_lpm_trie BMI bm_sim bm_runtime packet_pipe
 
-lib_LTLIBRARIES = libp4.la libp4runtime.la libbmi.la
+lib_LTLIBRARIES = libp4.la libp4runtime.la libbmi.la libpktpipe.la
 
 libp4_la_SOURCES =
 libp4_la_LIBADD = bf_lpm_trie/libbflpmtrie.la bm_sim/libbmsim.la
@@ -10,3 +10,6 @@ libp4runtime_la_LIBADD = bm_runtime/libbmruntime.la ../thrift_src/libruntimestub
 
 libbmi_la_SOURCES =
 libbmi_la_LIBADD = BMI/libbmi.la
+
+libpktpipe_la_SOURCES =
+libpktpipe_la_LIBADD = packet_pipe/libpktpipe.la
