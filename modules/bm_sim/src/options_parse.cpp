@@ -41,7 +41,9 @@ OptionsParser::parse(int argc, char *argv[])
      "Attach this network interface at startup")
     ("pcap", "Generate pcap files for interfaces")
     ("thrift-port", po::value<int>(),
-     "TCP port on which to run the Thrift runtime server");
+     "TCP port on which to run the Thrift runtime server")
+    ("nanomsg", po::value<std::string>(),
+     "Enable receiving packets on this nanomsg socket");
 
   po::options_description hidden;
   hidden.add_options()
@@ -102,5 +104,9 @@ OptionsParser::parse(int argc, char *argv[])
 	      << default_thrift_port
 	      << std::endl;
     thrift_port = default_thrift_port;
+  }
+
+  if(vm.count("nanomsg")) {
+    nanomsg = vm["nanomsg"].as<std::string>();
   }
 }

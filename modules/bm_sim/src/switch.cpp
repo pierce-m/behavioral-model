@@ -37,9 +37,6 @@ Switch::init_objects(const std::string &json_path) {
   int status = p4objects->init_objects(fs);
   if(status != 0) return status;
   Packet::set_phv_factory(p4objects->get_phv_factory());
-
-  // TODO: is this the right place to do this?
-  set_packet_handler(&Switch::packet_handler, (void *) this);
   return status;
 }
 
@@ -62,6 +59,22 @@ Switch::init_from_command_line_options(int argc, char *argv[]) {
     }
   }
   thrift_port = parser.thrift_port;
+  if(parser.nanomsg != "") {
+    packet_in_nanomsg = std::unique_ptr<PacketInNanomsg>(
+      new PacketInNanomsg(parser.nanomsg, &Switch::packet_handler, (void *) this)
+    );
+    transmit_fn_ = PacketInNanomsg::transmit;
+    transmit_cookie = packet_in_nanomsg.get(); // wise?
+    packet_in_nanomsg->start();
+  }
+  else {
+    transmit_fn_ = DevMgr::transmit;
+    // If I don't explicitely cast to DevMgr before casting to void *,
+    // I get a segfault later on
+    transmit_cookie = static_cast<DevMgr *>(this);
+    // TODO: is this the right place to do this?
+    set_packet_handler(&Switch::packet_handler, (void *) this);
+  }
   return status;
 }
 

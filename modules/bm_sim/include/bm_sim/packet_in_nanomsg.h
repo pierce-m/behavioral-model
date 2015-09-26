@@ -18,56 +18,49 @@
  *
  */
 
-#ifndef _BM_DEV_MGR_H_
-#define _BM_DEV_MGR_H_
+#ifndef _BM_PACKET_IN_NANOMSG_H_
+#define _BM_PACKET_IN_NANOMSG_H_
 
 #include <string>
-#include <functional>
+#include <thread>
+#include <atomic>
 
-extern "C" {
-#include "BMI/bmi_port.h"
-}
+#include "nn.h"
 
-class DevMgr {
+class PacketInNanomsg
+{
 public:
-  typedef unsigned int port_t;
-  enum class ReturnCode {
-    SUCCESS,
-    ERROR
-  };
   typedef std::function<void(int port_num, const char *buffer, int len, void *cookie)> PacketHandler;
 
 public:
-  DevMgr();
-  
-  ReturnCode port_add(const std::string &iface_name, port_t port_num,
-		      const char *pcap);
+  PacketInNanomsg(const std::string &addr,
+		  const PacketHandler &handler, void *cookie);
 
-  ReturnCode port_remove(port_t port_num);
+  void start();
 
-  void transmit_(int port_num, const char *buffer, int len) {
-    bmi_port_send(port_mgr, port_num, buffer, len);
-  }
+  void stop();
 
-  DevMgr(const DevMgr &other) = delete;
-  DevMgr &operator=(const DevMgr &other) = delete;
+  void transmit_(int port, const char *buffer, int len);
 
-  DevMgr(DevMgr &&other) = delete;
-  DevMgr &operator=(DevMgr &&other) = delete;
+  ~PacketInNanomsg();
 
 public:
   static void transmit(int port_num, const char *buffer, int len,
 		       void *cookie) {
-    ((DevMgr *) cookie)->transmit_(port_num, buffer, len);
+    ((PacketInNanomsg *) cookie)->transmit_(port_num, buffer, len);
   }
 
-protected:
-  ~DevMgr();
-
-  ReturnCode set_packet_handler(PacketHandler handler, void *cookie);
-  
 private:
-  bmi_port_mgr_t *port_mgr{nullptr};
+  void receive_loop();
+
+private:
+  std::string addr;
+  nn::socket s;
+  std::thread receive_thread{};
+  std::atomic<bool> stop_receive_thread{false};
+  std::atomic<bool> started{false};
+  PacketHandler handler;
+  void *cookie{nullptr};
 };
 
 #endif

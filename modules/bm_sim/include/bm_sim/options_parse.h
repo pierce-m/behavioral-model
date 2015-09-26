@@ -54,6 +54,7 @@ private:
   InterfaceList ifaces{};
   bool pcap{false};
   int thrift_port{};
+  std::string nanomsg{};
 };
 
 #endif

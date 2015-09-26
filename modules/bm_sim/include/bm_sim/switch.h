@@ -35,8 +35,11 @@
 #include "learning.h"
 #include "runtime_interface.h"
 #include "dev_mgr.h"
+#include "packet_in_nanomsg.h"
 
 class Switch : public RuntimeInterface, public DevMgr {
+public:
+  typedef std::function<void(int port_num, const char *buffer, int len, void *cookie)> TransmitFn;
 public:
   Switch(bool enable_swap = false);
 
@@ -49,6 +52,10 @@ public:
   virtual int receive(int port_num, const char *buffer, int len) = 0;
 
   virtual void start_and_return() = 0;
+
+  void transmit_fn(int port_num, const char *buffer, int len) {
+    return transmit_fn_(port_num, buffer, len, transmit_cookie);
+  }
 
   // returns the Thrift port if one was specified on the command line
   int get_runtime_port() { return thrift_port; }
@@ -249,6 +256,11 @@ private:
     ((Switch *) cookie)->receive(port_num, buffer, len);
   }
 
+  static void stub_transmit_fn(int port_num, const char *buffer, int len,
+			       void *cookie) {
+    (void) port_num; (void) buffer; (void) len; (void) cookie;
+  }
+
 private:
   MatchErrorCode get_mt_indirect(const std::string &table_name,
 				 MatchTableIndirect **table);
@@ -268,6 +280,11 @@ private:
   bool enable_swap{false};
   
   int thrift_port{};
+
+  TransmitFn transmit_fn_{Switch::stub_transmit_fn};
+  void *transmit_cookie{nullptr};
+
+  std::unique_ptr<PacketInNanomsg> packet_in_nanomsg{nullptr};
 };
 
 #endif
