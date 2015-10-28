@@ -7,7 +7,6 @@ gen-cpp/SimpleSwitch.h \
 gen-cpp/simple_switch_types.cpp \
 gen-cpp/simple_switch_types.h
 
-BUILT_SOURCES = $(simple_switch_thrift_files)
 
 AM_CPPFLAGS = \
 -I$(srcdir)/../../modules/bm_sim/include \
@@ -17,16 +16,34 @@ AM_CPPFLAGS = \
 -I$(srcdir)/../../modules/BMI/include \
 -I$(srcdir)/thrift/src/ \
 -I$(srcdir)/gen-cpp
+
 bin_PROGRAMS = simple_switch
+simple_switch_LDFLAGS = -l:$(srcdir)/../../modules/bm_runtime/.libs/libbmruntime.a \
+-l:$(srcdir)/../../modules/bm_sim/.libs/libbmsim.a \
+-l:$(srcdir)/../../modules/bf_lpm_trie/.libs/libbflpmtrie.a \
+-l:$(srcdir)/../../thrift_src/.libs/libruntimestubs.a \
+-l:$(srcdir)/../../thrift_src/.libs/libruntimestubs.a \
+-l:$(srcdir)/../../modules/BMI/.libs/libbmi.a \
+-l:$(srcdir)/../../third_party/jsoncpp/.libs/libjson.a \
+-lboost_system -lboost_thread -lthrift \
+-lboost_program_options  -pthread
+
+if FACEBOOK_THRIFT
+  simple_switch_thrift_files += \
+    gen-cpp/simple_switch_reflection.cpp \
+    gen-cpp/simple_switch_reflection.h
+
+  AM_CPPFLAGS += \
+    -DUSING_FACEBOOK_THRIFT
+
+  simple_switch_LDFLAGS += \
+    -l:$(HOME)/git/p4factory/submodules/fboss/external/fbthrift/thrift/lib/cpp2/.libs/libthriftcpp2.a \
+    -l:$(HOME)/git/p4factory/submodules/fboss/external/fbthrift/thrift/lib/cpp2/libsaslstubs.a \
+    -lfolly -lwangle -lssl -lgflags -lglog -lnuma -lgssapi_krb5
+endif
+
+BUILT_SOURCES = $(simple_switch_thrift_files)
 simple_switch_SOURCES = simple_switch.cpp simple_switch.h primitives.h $(BUILT_SOURCES)
-simple_switch_LDADD = \
-$(srcdir)/../../modules/bm_runtime/libbmruntime.la \
-$(srcdir)/../../modules/bm_sim/libbmsim.la \
-$(srcdir)/../../modules/bf_lpm_trie/libbflpmtrie.la \
-$(srcdir)/../../thrift_src/libruntimestubs.la \
-$(srcdir)/../../modules/BMI/libbmi.la \
-$(srcdir)/../../third_party/jsoncpp/libjson.la -lboost_system -lboost_thread -lthrift -lboost_program_options
-simple_switch_LDFLAGS = -pthread
 
 # See http://www.gnu.org/software/automake/manual/html_node/Multiple-Outputs.html
 

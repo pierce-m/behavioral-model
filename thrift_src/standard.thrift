@@ -82,68 +82,68 @@ struct BmMeterRateConfig {
 }
 
 enum TableOperationErrorCode {
-  TABLE_FULL = 1,
-  INVALID_HANDLE = 2,
-  EXPIRED_HANDLE = 3,
-  COUNTERS_DISABLED = 4,
-  AGEING_DISABLED = 5,
-  INVALID_TABLE_NAME = 6,
-  INVALID_ACTION_NAME = 7,
-  WRONG_TABLE_TYPE = 8,
-  INVALID_MBR_HANDLE = 9,
-  MBR_STILL_USED = 10,
-  MBR_ALREADY_IN_GRP = 11,
-  MBR_NOT_IN_GRP = 12,
-  INVALID_GRP_HANDLE = 13,
-  GRP_STILL_USED = 14,
-  EMPTY_GRP = 15,
-  DUPLICATE_ENTRY = 16,
-  ERROR = 17,
+  TableOperationErrorCode_TABLE_FULL = 1,
+  TableOperationErrorCode_INVALID_HANDLE = 2,
+  TableOperationErrorCode_EXPIRED_HANDLE = 3,
+  TableOperationErrorCode_COUNTERS_DISABLED = 4,
+  TableOperationErrorCode_AGEING_DISABLED = 5,
+  TableOperationErrorCode_INVALID_TABLE_NAME = 6,
+  TableOperationErrorCode_INVALID_ACTION_NAME = 7,
+  TableOperationErrorCode_WRONG_TABLE_TYPE = 8,
+  TableOperationErrorCode_INVALID_MBR_HANDLE = 9,
+  TableOperationErrorCode_MBR_STILL_USED = 10,
+  TableOperationErrorCode_MBR_ALREADY_IN_GRP = 11,
+  TableOperationErrorCode_MBR_NOT_IN_GRP = 12,
+  TableOperationErrorCode_INVALID_GRP_HANDLE = 13,
+  TableOperationErrorCode_GRP_STILL_USED = 14,
+  TableOperationErrorCode_EMPTY_GRP = 15,
+  TableOperationErrorCode_DUPLICATE_ENTRY = 16,
+  TableOperationErrorCode_ERROR = 17,
 }
 
 exception InvalidTableOperation {
-  1:TableOperationErrorCode what
+  1:TableOperationErrorCode what0
 }
 
 enum CounterOperationErrorCode {
-  INVALID_COUNTER_NAME = 1,
-  INVALID_INDEX = 2,
-  ERROR = 3,
+  CounterOperationErrorCode_INVALID_COUNTER_NAME = 1,
+  CounterOperationErrorCode_INVALID_INDEX = 2,
+  CounterOperationErrorCode_ERROR = 3,
 }
 
 exception InvalidCounterOperation {
-  1:CounterOperationErrorCode what
+  1:CounterOperationErrorCode what0
 }
 
 enum SwapOperationErrorCode {
-  CONFIG_SWAP_DISABLED = 1,
-  ONGOING_SWAP = 2,
-  NO_ONGOING_SWAP = 3
+  SwapOperationErrorCode_CONFIG_SWAP_DISABLED = 1,
+  SwapOperationErrorCode_ONGOING_SWAP = 2,
+  SwapOperationErrorCode_NO_ONGOING_SWAP = 3
 }
 
 exception InvalidSwapOperation {
-  1:SwapOperationErrorCode what
+  1:SwapOperationErrorCode what0
 }
 
 enum MeterOperationErrorCode {
-  INVALID_INDEX = 1,
-  BAD_RATES_LIST = 2,
-  INVALID_INFO_RATE_VALUE = 3,
-  INVALID_BURST_SIZE_VALUE = 4,
-  ERROR = 5
+  MeterOperationErrorCode_INVALID_INDEX = 1,
+  MeterOperationErrorCode_BAD_RATES_LIST = 2,
+  MeterOperationErrorCode_INVALID_INFO_RATE_VALUE = 3,
+  MeterOperationErrorCode_INVALID_BURST_SIZE_VALUE = 4,
+  MeterOperationErrorCode_ERROR = 5
 }
 
 exception InvalidMeterOperation {
- 1:MeterOperationErrorCode what
+ 1:MeterOperationErrorCode what0
 }
 
 // TODO
 enum DevMgrErrorCode {
-  ERROR = 1
+  DevMgrErrorCode_ERROR = 1
 }
 
 exception InvalidDevMgrOperation {
- 1:DevMgrErrorCode what
+ 1:DevMgrErrorCode what0
 }
 
 service Standard {

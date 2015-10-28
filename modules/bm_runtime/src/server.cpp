@@ -21,23 +21,25 @@
 #include <thread>
 #include <mutex>
 
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/server/TSimpleServer.h>
-#include <thrift/server/TThreadedServer.h>
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/processor/TMultiplexedProcessor.h>
-
 #include "Standard_server.ipp"
 #include "SimplePre_server.ipp"
 #include "SimplePreLAG_server.ipp"
 
-using namespace ::apache::thrift;
-using namespace ::apache::thrift::protocol;
-using namespace ::apache::thrift::transport;
-using namespace ::apache::thrift::server;
-
-using boost::shared_ptr;
+#ifndef USING_FACEBOOK_THRIFT
+  #include <thrift/protocol/TBinaryProtocol.h>
+  #include <thrift/server/TSimpleServer.h>
+  #include <thrift/server/TThreadedServer.h>
+  #include <thrift/transport/TServerSocket.h>
+  #include <thrift/transport/TBufferTransports.h>
+  #include <thrift/processor/TMultiplexedProcessor.h>
+  
+  using namespace ::apache::thrift;
+  using namespace ::apache::thrift::protocol;
+  using namespace ::apache::thrift::transport;
+  using namespace ::apache::thrift::server;
+  using boost::shared_ptr;
+#else
+#endif
 
 using ::bm_runtime::standard::StandardHandler;
 using ::bm_runtime::standard::StandardProcessor;
@@ -49,7 +51,10 @@ using ::bm_runtime::simple_pre_lag::SimplePreLAGProcessor;
 namespace bm_runtime {
 
 Switch *switch_;
-TMultiplexedProcessor *processor_;
+
+#ifndef USING_FACEBOOK_THRIFT
+  TMultiplexedProcessor *processor_;
+#endif
 
 namespace {
 
@@ -63,6 +68,7 @@ bool switch_has_component() {
 }
 
 int serve(int port) {
+#ifndef USING_FACEBOOK_THRIFT
   shared_ptr<TMultiplexedProcessor> processor(new TMultiplexedProcessor());
   processor_ = processor.get();
 
@@ -99,7 +105,7 @@ int serve(int port) {
   }
 
   TThreadedServer server(processor, serverTransport, transportFactory, protocolFactory);
-  server.serve();
+#endif
   return 0;  
 }
 

@@ -8,10 +8,17 @@
 
 #include "nn.h"
 
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/transport/TSocket.h>
-#include <thrift/transport/TTransportUtils.h>
-#include <thrift/protocol/TMultiplexedProtocol.h>
+#ifndef USING_FACEBOOK_THRIFT
+  #include <thrift/protocol/TBinaryProtocol.h>
+  #include <thrift/transport/TSocket.h>
+  #include <thrift/transport/TTransportUtils.h>
+  #include <thrift/protocol/TMultiplexedProtocol.h>
+
+  using namespace apache::thrift;
+  using namespace apache::thrift::protocol;
+  using namespace apache::thrift::transport;
+#else
+#endif
 
 #include "Standard.h"
 #include "SimplePre.h"
@@ -30,12 +37,10 @@ typedef struct {
 
 using namespace bm_runtime::standard;
 
-using namespace apache::thrift;
-using namespace apache::thrift::protocol;
-using namespace apache::thrift::transport;
 
 int main() {
 
+#ifndef USING_FACEBOOK_THRIFT
   boost::shared_ptr<TTransport> socket(new TSocket("localhost", 9090));
   boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
   boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
@@ -97,6 +102,8 @@ int main() {
 
     client.bm_learning_ack_buffer(learn_hdr.list_id, learn_hdr.buffer_id);
   }
+#else
+#endif
 
   return 0;
 }

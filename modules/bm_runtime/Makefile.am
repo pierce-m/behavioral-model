@@ -1,4 +1,14 @@
-AM_CPPFLAGS = -isystem $(srcdir)/../../third_party/jsoncpp/include -I$(srcdir)/../bm_sim/include -I$(srcdir)/../bf_lpm_trie/include -I$(srcdir)/../BMI/include -I$(srcdir)/../../thrift_src/gen-cpp
+AM_CPPFLAGS = -isystem $(srcdir)/../../third_party/jsoncpp/include \
+-I$(srcdir)/../bm_sim/include \
+-I$(srcdir)/../bf_lpm_trie/include \
+-I$(srcdir)/../BMI/include \
+-I$(srcdir)/../../thrift_src/gen-cpp \
+-Wno-unused-parameter
+
+if FACEBOOK_THRIFT
+  AM_CPPFLAGS += -DUSING_FACEBOOK_THRIFT
+endif
+
 AM_CXXFLAGS = $(PICKY_CXXFLAGS)
 AM_CFLAGS = $(PICKY_CFLAGS)
 noinst_LTLIBRARIES = libbmruntime.la

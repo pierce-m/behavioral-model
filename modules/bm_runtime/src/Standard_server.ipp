@@ -24,6 +24,14 @@
 
 namespace bm_runtime { namespace standard {
 
+#ifndef USING_FACEBOOK_THRIFT
+  #define RESOLVED_ERR_CODE_TYPE(errtype, code) \
+    errtype::type::code
+#else
+  #define RESOLVED_ERR_CODE_TYPE(errtype, code) \
+    errtype::code
+#endif
+
 typedef RuntimeInterface::mbr_hdl_t mbr_hdl_t;
 typedef RuntimeInterface::grp_hdl_t grp_hdl_t;
 
@@ -32,42 +40,42 @@ public:
   StandardHandler(Switch *sw)
     : switch_(sw) { }
 
-  static TableOperationErrorCode::type get_exception_code(MatchErrorCode bm_code) {
+  static TableOperationErrorCode get_exception_code(MatchErrorCode bm_code) {
     switch(bm_code) {
     case MatchErrorCode::TABLE_FULL:
-      return TableOperationErrorCode::TABLE_FULL;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_TABLE_FULL);
     case MatchErrorCode::INVALID_HANDLE:
-      return TableOperationErrorCode::INVALID_HANDLE;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_HANDLE);
     case MatchErrorCode::EXPIRED_HANDLE:
-      return TableOperationErrorCode::EXPIRED_HANDLE;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_EXPIRED_HANDLE);
     case MatchErrorCode::COUNTERS_DISABLED:
-      return TableOperationErrorCode::COUNTERS_DISABLED;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_COUNTERS_DISABLED);
     case MatchErrorCode::AGEING_DISABLED:
-      return TableOperationErrorCode::AGEING_DISABLED;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_AGEING_DISABLED);
     case MatchErrorCode::INVALID_TABLE_NAME:
-      return TableOperationErrorCode::INVALID_TABLE_NAME;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_TABLE_NAME);
     case MatchErrorCode::INVALID_ACTION_NAME:
-      return TableOperationErrorCode::INVALID_ACTION_NAME;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_ACTION_NAME);
     case MatchErrorCode::WRONG_TABLE_TYPE:
-      return TableOperationErrorCode::WRONG_TABLE_TYPE;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_WRONG_TABLE_TYPE);
     case MatchErrorCode::INVALID_MBR_HANDLE:
-      return TableOperationErrorCode::INVALID_MBR_HANDLE;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_MBR_HANDLE);
     case MatchErrorCode::MBR_STILL_USED:
-      return TableOperationErrorCode::MBR_STILL_USED;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_MBR_STILL_USED);
     case MatchErrorCode::MBR_ALREADY_IN_GRP:
-      return TableOperationErrorCode::MBR_ALREADY_IN_GRP;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_MBR_ALREADY_IN_GRP);
     case MatchErrorCode::MBR_NOT_IN_GRP:
-      return TableOperationErrorCode::MBR_NOT_IN_GRP;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_MBR_NOT_IN_GRP);
     case MatchErrorCode::INVALID_GRP_HANDLE:
-      return TableOperationErrorCode::INVALID_GRP_HANDLE;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_GRP_HANDLE);
     case MatchErrorCode::GRP_STILL_USED:
-      return TableOperationErrorCode::GRP_STILL_USED;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_GRP_STILL_USED);
     case MatchErrorCode::EMPTY_GRP:
-      return TableOperationErrorCode::EMPTY_GRP;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_EMPTY_GRP);
     case MatchErrorCode::DUPLICATE_ENTRY:
-      return TableOperationErrorCode::DUPLICATE_ENTRY;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_DUPLICATE_ENTRY);
     case MatchErrorCode::ERROR:
-      return TableOperationErrorCode::ERROR;
+      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_ERROR);
     default:
       assert(0 && "invalid error code");
     }
@@ -78,19 +86,19 @@ public:
     params.reserve(match_key.size()); // the number of elements will be the same
     for(const BmMatchParam &bm_param : match_key) {
       switch(bm_param.type) {
-      case BmMatchParamType::type::EXACT:
+      case EXACT:
 	params.emplace_back(MatchKeyParam::Type::EXACT,
 			    bm_param.exact.key);
 	break;
-      case BmMatchParamType::type::LPM:
+      case LPM:
 	params.emplace_back(MatchKeyParam::Type::LPM,
 			    bm_param.lpm.key, bm_param.lpm.prefix_length);
 	break;
-      case BmMatchParamType::type::TERNARY:
+      case TERNARY:
 	params.emplace_back(MatchKeyParam::Type::TERNARY,
 			    bm_param.ternary.key, bm_param.ternary.mask);
 	break;
-      case BmMatchParamType::type::VALID:
+      case VALID:
 	params.emplace_back(MatchKeyParam::Type::VALID,
 			    bm_param.valid.key ? std::string("\x01", 1) : std::string("\x00", 1));
 	break;
@@ -119,7 +127,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
     return entry_handle;
@@ -138,7 +146,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -151,7 +159,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -170,7 +178,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -183,7 +191,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -201,7 +209,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
     return mbr_handle;
@@ -214,7 +222,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -230,7 +238,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -245,7 +253,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
     return entry_handle;
@@ -258,7 +266,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -270,7 +278,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -283,7 +291,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -295,7 +303,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -308,7 +316,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
     return grp_handle;
@@ -321,7 +329,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -333,7 +341,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -345,7 +353,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -360,7 +368,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
     return entry_handle;
@@ -373,7 +381,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -385,7 +393,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -401,7 +409,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
     _return.bytes = (int64_t) bytes;
@@ -415,7 +423,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -431,7 +439,7 @@ public:
     );
     if(error_code != MatchErrorCode::SUCCESS) {
       InvalidTableOperation ito;
-      ito.what = get_exception_code(error_code);
+      ito.what0 = get_exception_code(error_code);
       throw ito;
     }
   }
@@ -447,7 +455,7 @@ public:
     );
     if(error_code != Counter::CounterErrorCode::SUCCESS) {
       InvalidCounterOperation ico;
-      ico.what = (CounterOperationErrorCode::type) error_code;
+      ico.what0 = (CounterOperationErrorCode) error_code;
       throw ico;
     }
     _return.bytes = (int64_t) bytes;
@@ -459,7 +467,7 @@ public:
     Counter::CounterErrorCode error_code = switch_->reset_counters(counter_name);
     if(error_code != Counter::CounterErrorCode::SUCCESS) {
       InvalidCounterOperation ico;
-      ico.what = (CounterOperationErrorCode::type) error_code;
+      ico.what0 = (CounterOperationErrorCode) error_code;
       throw ico;
     }
   }
@@ -475,7 +483,7 @@ public:
     );
     if(error_code != Counter::CounterErrorCode::SUCCESS) {
       InvalidCounterOperation ico;
-      ico.what = (CounterOperationErrorCode::type) error_code;
+      ico.what0 = (CounterOperationErrorCode) error_code;
       throw ico;
     }
   }
@@ -496,7 +504,7 @@ public:
       switch_->load_new_config(config_str);
     if(error_code != RuntimeInterface::SUCCESS) {
       InvalidSwapOperation iso;
-      iso.what = (SwapOperationErrorCode::type) error_code;
+      iso.what0 = (SwapOperationErrorCode) error_code;
       throw iso;
     }
   }
@@ -506,7 +514,7 @@ public:
     RuntimeInterface::ErrorCode error_code = switch_->swap_configs();
     if(error_code != RuntimeInterface::SUCCESS) {
       InvalidSwapOperation iso;
-      iso.what = (SwapOperationErrorCode::type) error_code;
+      iso.what0 = (SwapOperationErrorCode) error_code;
       throw iso;
     }
   }
@@ -524,7 +532,7 @@ public:
       switch_->meter_array_set_rates(meter_array_name, rates_);
     if(error_code != Meter::MeterErrorCode::SUCCESS) {
       InvalidMeterOperation imo;
-      imo.what = (MeterOperationErrorCode::type) error_code;
+      imo.what0 = (MeterOperationErrorCode) error_code;
       throw imo;
     }
   }
@@ -543,7 +551,7 @@ public:
     );
     if(error_code != Meter::MeterErrorCode::SUCCESS) {
       InvalidMeterOperation imo;
-      imo.what = (MeterOperationErrorCode::type) error_code;
+      imo.what0 = (MeterOperationErrorCode) error_code;
       throw imo;
     }
   }
@@ -556,7 +564,7 @@ public:
     error_code = switch_->port_add(iface_name, port_num, pcap);
     if(error_code != DevMgr::ReturnCode::SUCCESS) {
       InvalidDevMgrOperation idmo;
-      idmo.what = (DevMgrErrorCode::type) 1; // TODO
+      idmo.what0 = (DevMgrErrorCode) 1; // TODO
       throw idmo;
     }
   }
@@ -567,7 +575,7 @@ public:
     error_code = switch_->port_remove(port_num);
     if(error_code != DevMgr::ReturnCode::SUCCESS) {
       InvalidDevMgrOperation idmo;
-      idmo.what = (DevMgrErrorCode::type) 1; // TODO
+      idmo.what0 = (DevMgrErrorCode) 1; // TODO
       throw idmo;
     }
   }
