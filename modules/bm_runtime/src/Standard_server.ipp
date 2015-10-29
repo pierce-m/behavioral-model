@@ -25,11 +25,11 @@
 namespace bm_runtime { namespace standard {
 
 #ifndef USING_FACEBOOK_THRIFT
-  #define RESOLVED_ERR_CODE_TYPE(errtype, code) \
-    errtype::type::code
+  #define STANDARD_WHAT_STORE(errcodetype, what0, err) \
+    what0 = (errcodetype::type) err;
 #else
-  #define RESOLVED_ERR_CODE_TYPE(errtype, code) \
-    errtype::code
+  #define STANDARD_WHAT_STORE(errcodetype, what0, err) \
+    what0 = (errcodetype) err;
 #endif
 
 typedef RuntimeInterface::mbr_hdl_t mbr_hdl_t;
@@ -40,42 +40,111 @@ public:
   StandardHandler(Switch *sw)
     : switch_(sw) { }
 
+#ifndef USING_FACEBOOK_THRIFT
+  static TableOperationErrorCode::type get_exception_code(MatchErrorCode bm_code) {
+    switch(bm_code) {
+    case MatchErrorCode::TABLE_FULL:
+      return TableOperationErrorCode::TableOperationErrorCode_TABLE_FULL;
+    case MatchErrorCode::INVALID_HANDLE:
+      return TableOperationErrorCode::TableOperationErrorCode_INVALID_HANDLE;
+    case MatchErrorCode::EXPIRED_HANDLE:
+      return TableOperationErrorCode::TableOperationErrorCode_EXPIRED_HANDLE;
+    case MatchErrorCode::COUNTERS_DISABLED:
+      return TableOperationErrorCode::TableOperationErrorCode_COUNTERS_DISABLED;
+    case MatchErrorCode::AGEING_DISABLED:
+      return TableOperationErrorCode::TableOperationErrorCode_AGEING_DISABLED;
+    case MatchErrorCode::INVALID_TABLE_NAME:
+      return TableOperationErrorCode::TableOperationErrorCode_INVALID_TABLE_NAME;
+    case MatchErrorCode::INVALID_ACTION_NAME:
+      return TableOperationErrorCode::TableOperationErrorCode_INVALID_ACTION_NAME;
+    case MatchErrorCode::WRONG_TABLE_TYPE:
+      return TableOperationErrorCode::TableOperationErrorCode_WRONG_TABLE_TYPE;
+    case MatchErrorCode::INVALID_MBR_HANDLE:
+      return TableOperationErrorCode::TableOperationErrorCode_INVALID_MBR_HANDLE;
+    case MatchErrorCode::MBR_STILL_USED:
+      return TableOperationErrorCode::TableOperationErrorCode_MBR_STILL_USED;
+    case MatchErrorCode::MBR_ALREADY_IN_GRP:
+      return TableOperationErrorCode::TableOperationErrorCode_MBR_ALREADY_IN_GRP;
+    case MatchErrorCode::MBR_NOT_IN_GRP:
+      return TableOperationErrorCode::TableOperationErrorCode_MBR_NOT_IN_GRP;
+    case MatchErrorCode::INVALID_GRP_HANDLE:
+      return TableOperationErrorCode::TableOperationErrorCode_INVALID_GRP_HANDLE;
+    case MatchErrorCode::GRP_STILL_USED:
+      return TableOperationErrorCode::TableOperationErrorCode_GRP_STILL_USED;
+    case MatchErrorCode::EMPTY_GRP:
+      return TableOperationErrorCode::TableOperationErrorCode_EMPTY_GRP;
+    case MatchErrorCode::DUPLICATE_ENTRY:
+      return TableOperationErrorCode::TableOperationErrorCode_DUPLICATE_ENTRY;
+    case MatchErrorCode::ERROR:
+      return TableOperationErrorCode::TableOperationErrorCode_ERROR;
+    default:
+      assert(0 && "invalid error code");
+    }
+  }
+
+  static void build_match_key(std::vector<MatchKeyParam> &params,
+			      const BmMatchParams& match_key) {
+    params.reserve(match_key.size()); // the number of elements will be the same
+    for(const BmMatchParam &bm_param : match_key) {
+      switch(bm_param.type) {
+      case BmMatchParamType::EXACT:
+	params.emplace_back(MatchKeyParam::Type::EXACT,
+			    bm_param.exact.key);
+	break;
+      case BmMatchParamType::LPM:
+	params.emplace_back(MatchKeyParam::Type::LPM,
+			    bm_param.lpm.key, bm_param.lpm.prefix_length);
+	break;
+      case BmMatchParamType::TERNARY:
+	params.emplace_back(MatchKeyParam::Type::TERNARY,
+			    bm_param.ternary.key, bm_param.ternary.mask);
+	break;
+      case BmMatchParamType::VALID:
+	params.emplace_back(MatchKeyParam::Type::VALID,
+			    bm_param.valid.key ? std::string("\x01", 1) : std::string("\x00", 1));
+	break;
+      default:
+	assert(0 && "wrong type");
+      }
+    }
+  }
+#else
   static TableOperationErrorCode get_exception_code(MatchErrorCode bm_code) {
     switch(bm_code) {
     case MatchErrorCode::TABLE_FULL:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_TABLE_FULL);
+      return TableOperationErrorCode_TABLE_FULL;
     case MatchErrorCode::INVALID_HANDLE:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_HANDLE);
+      return TableOperationErrorCode_INVALID_HANDLE;
     case MatchErrorCode::EXPIRED_HANDLE:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_EXPIRED_HANDLE);
+      return TableOperationErrorCode_EXPIRED_HANDLE;
     case MatchErrorCode::COUNTERS_DISABLED:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_COUNTERS_DISABLED);
+      return TableOperationErrorCode_COUNTERS_DISABLED;
     case MatchErrorCode::AGEING_DISABLED:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_AGEING_DISABLED);
+      return TableOperationErrorCode_AGEING_DISABLED;
     case MatchErrorCode::INVALID_TABLE_NAME:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_TABLE_NAME);
+      return TableOperationErrorCode_INVALID_TABLE_NAME;
     case MatchErrorCode::INVALID_ACTION_NAME:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_ACTION_NAME);
+      return TableOperationErrorCode_INVALID_ACTION_NAME;
     case MatchErrorCode::WRONG_TABLE_TYPE:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_WRONG_TABLE_TYPE);
+      return TableOperationErrorCode_WRONG_TABLE_TYPE;
     case MatchErrorCode::INVALID_MBR_HANDLE:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_MBR_HANDLE);
+      return TableOperationErrorCode_INVALID_MBR_HANDLE;
     case MatchErrorCode::MBR_STILL_USED:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_MBR_STILL_USED);
+      return TableOperationErrorCode_MBR_STILL_USED;
     case MatchErrorCode::MBR_ALREADY_IN_GRP:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_MBR_ALREADY_IN_GRP);
+      return TableOperationErrorCode_MBR_ALREADY_IN_GRP;
     case MatchErrorCode::MBR_NOT_IN_GRP:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_MBR_NOT_IN_GRP);
+      return TableOperationErrorCode_MBR_NOT_IN_GRP;
     case MatchErrorCode::INVALID_GRP_HANDLE:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_INVALID_GRP_HANDLE);
+      return TableOperationErrorCode_INVALID_GRP_HANDLE;
     case MatchErrorCode::GRP_STILL_USED:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_GRP_STILL_USED);
+      return TableOperationErrorCode_GRP_STILL_USED;
     case MatchErrorCode::EMPTY_GRP:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_EMPTY_GRP);
+      return TableOperationErrorCode_EMPTY_GRP;
     case MatchErrorCode::DUPLICATE_ENTRY:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_DUPLICATE_ENTRY);
+      return TableOperationErrorCode_DUPLICATE_ENTRY;
     case MatchErrorCode::ERROR:
-      return RESOLVED_ERR_CODE_TYPE(TableOperationErrorCode, TableOperationErrorCode_ERROR);
+      return TableOperationErrorCode_ERROR;
     default:
       assert(0 && "invalid error code");
     }
@@ -107,6 +176,8 @@ public:
       }
     }
   }
+#endif
+
 
   BmEntryHandle bm_mt_add_entry(const std::string& table_name, const BmMatchParams& match_key, const std::string& action_name, const BmActionData& action_data, const BmAddEntryOptions& options) {
     printf("bm_table_add_entry\n");
@@ -455,7 +526,7 @@ public:
     );
     if(error_code != Counter::CounterErrorCode::SUCCESS) {
       InvalidCounterOperation ico;
-      ico.what0 = (CounterOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(CounterOperationErrorCode, ico.what0, error_code);
       throw ico;
     }
     _return.bytes = (int64_t) bytes;
@@ -467,7 +538,7 @@ public:
     Counter::CounterErrorCode error_code = switch_->reset_counters(counter_name);
     if(error_code != Counter::CounterErrorCode::SUCCESS) {
       InvalidCounterOperation ico;
-      ico.what0 = (CounterOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(CounterOperationErrorCode, ico.what0, error_code);
       throw ico;
     }
   }
@@ -483,7 +554,7 @@ public:
     );
     if(error_code != Counter::CounterErrorCode::SUCCESS) {
       InvalidCounterOperation ico;
-      ico.what0 = (CounterOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(CounterOperationErrorCode, ico.what0, error_code);
       throw ico;
     }
   }
@@ -504,7 +575,7 @@ public:
       switch_->load_new_config(config_str);
     if(error_code != RuntimeInterface::SUCCESS) {
       InvalidSwapOperation iso;
-      iso.what0 = (SwapOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(SwapOperationErrorCode, iso.what0, error_code);
       throw iso;
     }
   }
@@ -514,7 +585,7 @@ public:
     RuntimeInterface::ErrorCode error_code = switch_->swap_configs();
     if(error_code != RuntimeInterface::SUCCESS) {
       InvalidSwapOperation iso;
-      iso.what0 = (SwapOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(SwapOperationErrorCode, iso.what0, error_code);
       throw iso;
     }
   }
@@ -532,7 +603,7 @@ public:
       switch_->meter_array_set_rates(meter_array_name, rates_);
     if(error_code != Meter::MeterErrorCode::SUCCESS) {
       InvalidMeterOperation imo;
-      imo.what0 = (MeterOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(MeterOperationErrorCode, imo.what0, error_code);
       throw imo;
     }
   }
@@ -551,7 +622,7 @@ public:
     );
     if(error_code != Meter::MeterErrorCode::SUCCESS) {
       InvalidMeterOperation imo;
-      imo.what0 = (MeterOperationErrorCode) error_code;
+      STANDARD_WHAT_STORE(MeterOperationErrorCode, imo.what0, error_code);
       throw imo;
     }
   }
@@ -564,7 +635,7 @@ public:
     error_code = switch_->port_add(iface_name, port_num, pcap);
     if(error_code != DevMgr::ReturnCode::SUCCESS) {
       InvalidDevMgrOperation idmo;
-      idmo.what0 = (DevMgrErrorCode) 1; // TODO
+      STANDARD_WHAT_STORE(DevMgrErrorCode, idmo.what0, 1); // TODO
       throw idmo;
     }
   }
@@ -575,7 +646,7 @@ public:
     error_code = switch_->port_remove(port_num);
     if(error_code != DevMgr::ReturnCode::SUCCESS) {
       InvalidDevMgrOperation idmo;
-      idmo.what0 = (DevMgrErrorCode) 1; // TODO
+      STANDARD_WHAT_STORE(DevMgrErrorCode, idmo.what0, 1); // TODO
       throw idmo;
     }
   }

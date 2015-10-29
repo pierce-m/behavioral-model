@@ -25,10 +25,10 @@
 namespace bm_runtime { namespace simple_pre {
 
 #ifndef USING_FACEBOOK_THRIFT                 
-  #define WHAT_STORE(what0, err)              \
+  #define SIMPLE_PRE_WHAT_STORE(what0, err)              \
     what0 = (McOperationErrorCode::type) err; 
 #else                                         
-  #define WHAT_STORE(what0, err)              \
+  #define SIMPLE_PRE_WHAT_STORE(what0, err)              \
     what0 = (McOperationErrorCode) err;       
 #endif                                        
     
@@ -48,8 +48,7 @@ public:
       pre->mc_mgrp_create(mgrp, &mgrp_hdl);
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      imo.what0 = (McOperationErrorCode) error_code;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
     return mgrp_hdl;
@@ -61,7 +60,7 @@ public:
       pre->mc_mgrp_destroy(mgrp_handle);
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
   }
@@ -73,7 +72,7 @@ public:
       pre->mc_node_create(rid, port_map, &l1_hdl);
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
     return l1_hdl;
@@ -85,7 +84,7 @@ public:
       pre->mc_node_associate(mgrp_handle, l1_handle);
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
   }
@@ -96,7 +95,7 @@ public:
       pre->mc_node_dissociate(mgrp_handle, l1_handle);
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
   }
@@ -107,7 +106,7 @@ public:
       pre->mc_node_destroy(l1_handle);
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
   }
@@ -119,7 +118,7 @@ public:
     );
     if(error_code != McSimplePre::SUCCESS) {
       InvalidMcOperation imo;
-      WHAT_STORE(imo.what0, error_code)
+      SIMPLE_PRE_WHAT_STORE(imo.what0, error_code)
       throw imo;
     }
   }

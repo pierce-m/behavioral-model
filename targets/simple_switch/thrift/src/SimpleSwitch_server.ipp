@@ -1,10 +1,10 @@
 #include "SimpleSwitch.h"
 
 #ifndef USING_FACEBOOK_THRIFT
-  #include <protocol/TBinaryProtocol.h>
-  #include <server/TSimpleServer.h>
-  #include <transport/TServerSocket.h>
-  #include <transport/TBufferTransports.h>
+  #include <thrift/protocol/TBinaryProtocol.h>
+  #include <thrift/server/TSimpleServer.h>
+  #include <thrift/transport/TServerSocket.h>
+  #include <thrift/transport/TBufferTransports.h>
 
   using boost::shared_ptr;
 #else

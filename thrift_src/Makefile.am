@@ -2,8 +2,6 @@ standard_thrift_files = \
 $(srcdir)/../tools/bm_runtime/standard/__init__.py \
 gen-cpp/standard_constants.cpp \
 gen-cpp/standard_constants.h \
-gen-cpp/standard_reflection.cpp \
-gen-cpp/standard_reflection.h \
 gen-cpp/Standard.cpp \
 gen-cpp/Standard.h \
 gen-cpp/standard_types.cpp \
@@ -13,8 +11,6 @@ simple_pre_thrift_files = \
 $(srcdir)/../tools/bm_runtime/simple_pre/__init__.py \
 gen-cpp/simple_pre_constants.cpp \
 gen-cpp/simple_pre_constants.h \
-gen-cpp/simple_pre_reflection.cpp \
-gen-cpp/simple_pre_reflection.h \
 gen-cpp/SimplePre.cpp \
 gen-cpp/SimplePre.h \
 gen-cpp/simple_pre_types.cpp \
@@ -26,10 +22,22 @@ gen-cpp/simple_pre_lag_constants.cpp \
 gen-cpp/simple_pre_lag_constants.h \
 gen-cpp/SimplePreLAG.cpp \
 gen-cpp/SimplePreLAG.h \
-gen-cpp/simple_pre_lag_reflection.cpp \
-gen-cpp/simple_pre_lag_reflection.h \
 gen-cpp/simple_pre_lag_types.cpp \
 gen-cpp/simple_pre_lag_types.h
+
+if FACEBOOK_THRIFT
+  standard_thrift_files += \
+    gen-cpp/standard_reflection.cpp \
+    gen-cpp/standard_reflection.h
+
+  simple_pre_thrift_files += \
+    gen-cpp/simple_pre_reflection.cpp \
+    gen-cpp/simple_pre_reflection.h
+
+  simple_pre_lag_thrift_files += \
+    gen-cpp/simple_pre_lag_reflection.cpp \
+    gen-cpp/simple_pre_lag_reflection.h
+endif
 
 BUILT_SOURCES = \
 $(standard_thrift_files) \
