@@ -26,7 +26,6 @@ sudo apt-get install -y \
 tmpdir=`mktemp -d -p .`
 cd $tmpdir
 
-bash ../build/travis/install-thrift.sh
 bash ../build/travis/install-nanomsg.sh
 sudo ldconfig
 bash ../build/travis/install-nnpy.sh
