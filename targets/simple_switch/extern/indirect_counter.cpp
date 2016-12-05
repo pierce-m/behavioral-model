@@ -16,7 +16,7 @@ class IndirectCounter : public ExternType {
   }
 
   void count(const Data &index) {
-    v.at(index.get<size_t>())++;
+    v.at(index.get<size_t>()).increment();
   }
 
  private:
@@ -26,7 +26,7 @@ class IndirectCounter : public ExternType {
 
   // implementing structure
   std::vector<Data> v;
-}
+};
 
 BM_REGISTER_EXTERN_W_NAME(counter, IndirectCounter);
 BM_REGISTER_EXTERN_W_NAME_METHOD(counter, IndirectCounter, count, const Data &);
