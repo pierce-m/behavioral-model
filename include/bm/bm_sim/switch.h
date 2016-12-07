@@ -865,6 +865,14 @@ class Switch : public SwitchWContexts {
     return new_packet(0u, ingress_port, id, ingress_length, std::move(buffer));
   }
 
+  //! Return a raw, non-owning pointer to ExternType \p name. This pointer will be
+  //! invalidated if a configuration swap is performed by the target. See
+  //! switch.h documentation for details. Return a nullptr if there is no
+  //! extern with this name.
+  ExternType *get_extern(const std::string &name) {
+    return get_context(0)->get_extern(name);
+  }
+
   //! Return a raw, non-owning pointer to Pipeline \p name. This pointer will be
   //! invalidated if a configuration swap is performed by the target. See
   //! switch.h documentation for details. Return a nullptr if there is no

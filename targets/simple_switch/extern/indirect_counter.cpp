@@ -1,32 +1,26 @@
-#include <bm/bm_sim/extern.h>
-#include <bm/bm_sim/P4Objects.h>
+#include "indirect_counter.h"
 
-using bm::ExternType;
-using bm::Data;
+void IndirectCounter::init() {
+  packets.resize(size.get<size_t>());
+  bytes.resize(size.get<size_t>());
+}
 
-class IndirectCounter : public ExternType {
- public:
-  BM_EXTERN_ATTRIBUTES {
-    BM_EXTERN_ATTRIBUTE_ADD(size);
-    BM_EXTERN_ATTRIBUTE_ADD(type);
-  }
+void IndirectCounter::count(const Data &index) {
+  // increment packet
+  Data d1(1);
+  Data *d2 = &packets.at(index.get<size_t>());
+  d2->add(d1, *d2);
 
-  void init() override {
-    v.resize(size.get<size_t>());
-  }
+  // TODO(pierce): add packet length in bytes
+}
 
-  void count(const Data &index) {
-    v.at(index.get<size_t>()).increment();
-  }
+// for testing purposes only -- leave unregistered
+void IndirectCounter::read(Data &_pkts_return,
+    Data &_bytes_return, const Data &index) {
 
- private:
-  // constructor params
-  Data size;
-  Data type;
-
-  // implementing structure
-  std::vector<Data> v;
-};
+  _pkts_return = packets.at(index.get<size_t>());
+  _bytes_return = bytes.at(index.get<size_t>());
+}
 
 BM_REGISTER_EXTERN_W_NAME(counter, IndirectCounter);
 BM_REGISTER_EXTERN_W_NAME_METHOD(counter, IndirectCounter, count, const Data &);

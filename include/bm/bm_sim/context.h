@@ -57,6 +57,7 @@
 #include <typeindex>
 
 #include "P4Objects.h"
+#include "extern.h"
 #include "match_tables.h"
 #include "runtime_interface.h"
 #include "lookup_structures.h"
@@ -104,6 +105,14 @@ class Context final {
 
   // do these methods need any protection?
   // TODO(antonin): should I return shared_ptrs instead of raw_ptrs?
+
+
+  //! Get a raw, non-owning pointer to the Extern object with P4 name \p
+  //! name. Return a nullptr if there is no extern with this name.
+  ExternType *get_extern(const std::string &name) {
+    return p4objects->get_extern_instance(name);
+  }
+
 
   //! Get a raw, non-owning pointer to the Pipeline object with P4 name \p
   //! name. Return a nullptr if there is no pipeline with this name.
