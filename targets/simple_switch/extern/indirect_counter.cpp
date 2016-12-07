@@ -1,23 +1,24 @@
 #include "indirect_counter.h"
 
+using bm::Packet;
+
 void IndirectCounter::init() {
   packets.resize(size.get<size_t>());
   bytes.resize(size.get<size_t>());
 }
 
 void IndirectCounter::count(const Data &index) {
-  // increment packet
-  Data d1(1);
-  Data *d2 = &packets.at(index.get<size_t>());
-  d2->add(d1, *d2);
+  Data *d;
+  d = &packets.at(index.get<size_t>());
+  d->add(Data(1), *d);
 
-  // TODO(pierce): add packet length in bytes
+  d = &bytes.at(index.get<size_t>());
+  d->add(Data(get_packet().get_ingress_length()), *d);
 }
 
 // for testing purposes only -- leave unregistered
-void IndirectCounter::read(Data &_pkts_return,
-    Data &_bytes_return, const Data &index) {
-
+void IndirectCounter::read(Data &_pkts_return, Data &_bytes_return,
+                           const Data &index) {
   _pkts_return = packets.at(index.get<size_t>());
   _bytes_return = bytes.at(index.get<size_t>());
 }

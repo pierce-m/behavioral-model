@@ -25,7 +25,7 @@ test_packet_redirect_SOURCES = $(common_source) test_packet_redirect.cpp
 test_truncate_SOURCES = $(common_source) test_truncate.cpp
 test_swap_SOURCES = $(common_source) test_swap.cpp
 test_queueing_SOURCES = $(common_source) test_queueing.cpp
-test_indirect_counter_SOURCES = $(common_source) test_indirect_counter.cpp 
+test_indirect_counter_SOURCES = $(common_source) test_indirect_counter.cpp ../extern/indirect_counter.cpp
 
 test_all_SOURCES = $(common_source) \
 test_packet_redirect.cpp \
