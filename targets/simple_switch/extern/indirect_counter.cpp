@@ -17,7 +17,8 @@ void IndirectCounter::count(const Data &index) {
 }
 
 // for testing purposes only -- leave unregistered
-void IndirectCounter::read(Data &_pkts_return, Data &_bytes_return,
+void IndirectCounter::read(Data &_pkts_return,
+                           Data &_bytes_return,
                            const Data &index) {
   _pkts_return = packets.at(index.get<size_t>());
   _bytes_return = bytes.at(index.get<size_t>());

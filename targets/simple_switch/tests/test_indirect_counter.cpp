@@ -13,121 +13,81 @@
  * limitations under the License.
  */
 
-#include <bm/bm_sim/P4Objects.h>
-#include <bm/bm_apps/packet_pipe.h>
-
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
 
-#include <string>
-#include <memory>
-#include <vector>
-#include <unistd.h> // for sleep
+#include <bm/bm_sim/packet.h>
+#include <bm/bm_sim/actions.h>
+#include <bm/bm_sim/phv.h>
 
-#include "simple_switch.h"
-#include "utils.h"
-#include "../extern/indirect_counter.h"
+#include "extern/indirect_counter.h"
 
-namespace fs = boost::filesystem;
+using namespace bm;
 
-using bm::MatchErrorCode;
-using bm::ActionData;
-using bm::MatchKeyParam;
-using bm::entry_handle_t;
-using bm::Data;
-using bm::ExternFactoryMap;
+extern int import_indirect_counter();
 
-namespace {
-
-void
-packet_handler(int port_num, const char *buffer, int len, void *cookie) {
-  static_cast<SimpleSwitch *>(cookie)->receive(port_num, buffer, len);
-}
-
-} //namespace
-
-class SimpleSwitch_IndirectCounterP4 : public ::testing::Test {
- protected:
-  static constexpr int device_id{0};
-
-  SimpleSwitch_IndirectCounterP4()
-      : packet_inject(packet_in_addr) { }
-
-  // Per-test-case set-up.
-  // We make the switch a shared resource for all tests. This is mainly because
-  // the simple_switch target detaches threads
+class ExternCounterTest : public ::testing::Test {
+ public:
   static void SetUpTestCase() {
-    // bm::Logger::set_logger_console();
-
-    test_switch = new SimpleSwitch(8);  // 8 ports
-
-    // load JSON
-    fs::path json_path = fs::path(testdata_dir) / fs::path(test_json);
-    test_switch->init_objects(json_path.string());
-
-    // packet in - packet out
-    test_switch->set_dev_mgr_packet_in(device_id, packet_in_addr, nullptr);
-    test_switch->Switch::start();  // there is a start member in SimpleSwitch
-    test_switch->set_packet_handler(packet_handler,
-                                    static_cast<void *>(test_switch));
-    test_switch->start_and_return();
+    import_indirect_counter();
   }
 
-  // Per-test-case tear-down.
-  static void TearDownTestCase() {
-    delete test_switch;
-  }
+ protected:
+  PHVFactory phv_factory;
+  PHV *phv{nullptr};
+  HeaderType testHeaderType;
+  header_id_t testHeader{0};
+
+  std::unique_ptr<PHVSourceIface> phv_source{nullptr};
+  std::unique_ptr<Packet> pkt{nullptr};
+
+  ExternCounterTest()
+      : testHeaderType("test_t", 0),
+        phv_source(PHVSourceIface::make_phv_source()) {}
 
   virtual void SetUp() {
-    packet_inject.start();
-    auto cb = std::bind(&PacketInReceiver::receive, &receiver,
-                        std::placeholders::_1, std::placeholders::_2,
-                        std::placeholders::_3, std::placeholders::_4);
-    packet_inject.set_packet_receiver(cb, nullptr);
-
-    // default actions for all tables
-    ActionData data;
-    data.push_back_action_data(2);
-    test_switch->mt_set_default_action(0, "m_table", "m_action", data);
+    int ingress_length = 14;
+    phv_source->set_phv_factory(0, &phv_factory);
+    pkt = std::unique_ptr<Packet>(new Packet(
+        Packet::make_new(ingress_length, PacketBuffer(ingress_length),
+                         phv_source.get())));
+    phv = pkt->get_phv();
   }
 
-  virtual void TearDown() {
-    // kind of experimental, so reserved for testing
-    test_switch->reset_state();
+  static ActionPrimitive_ *get_extern_primitive(
+      const std::string &extern_name, const std::string &method_name) {
+    return ActionOpcodesMap::get_instance()->get_primitive(
+        "_" + extern_name + "_" + method_name);
   }
 
- protected:
-  static const std::string packet_in_addr;
-  static SimpleSwitch *test_switch;
-  bm_apps::PacketInject packet_inject;
-  PacketInReceiver receiver{};
+  void execute_count(ExternType *instance, size_t index) {
+    ActionFn testActionFn("test_action", 0);
+    ActionFnEntry testActionFnEntry(&testActionFn);
+    auto primitive = get_extern_primitive("counter",
+                                          "count");
+    testActionFn.push_back_primitive(primitive);
+    testActionFn.parameter_push_back_extern_instance(instance);
+    testActionFn.parameter_push_back_const(Data(index));
+    testActionFnEntry(pkt.get());
+  }
 
- private:
-  static const std::string testdata_dir;
-  static const std::string test_json;
+  void execute(ExternType *instance, size_t index) {
+    execute_count(instance, index);
+  }
 };
 
-const std::string SimpleSwitch_IndirectCounterP4::packet_in_addr =
-    "inproc://packets";
+TEST_F(ExternCounterTest, IndirectCounter) {
+  Data counter_size(3);
+  std::string counter_type("packets_and_bytes");
 
-SimpleSwitch *SimpleSwitch_IndirectCounterP4::test_switch = nullptr;
-
-const std::string SimpleSwitch_IndirectCounterP4::testdata_dir = TESTDATADIR;
-const std::string SimpleSwitch_IndirectCounterP4::test_json =
-    "counter.json";
-
-TEST_F(SimpleSwitch_IndirectCounterP4, IndirectCounter) {
-  // send empty packet
-  char pkt[14];
-  memset(pkt, 0, sizeof(pkt));
-  packet_inject.send(1, pkt, sizeof(pkt));
-
-  // wait for packet to go through
-  sleep(2);
-
-  // verify counter value
-  auto extern_instance = test_switch->get_extern("my_indirect_counter");
-  auto counter_instance = dynamic_cast<IndirectCounter *>(extern_instance);
+  auto extern_instance =
+      ExternFactoryMap::get_instance()->get_extern_instance("counter");
+  extern_instance->_register_attributes();
+  extern_instance->_set_attribute<Data>("size", counter_size);
+  extern_instance->_set_attribute<std::string>("type", counter_type);
+  extern_instance->init();
+  auto counter_instance =
+      dynamic_cast<IndirectCounter *>(extern_instance.get());
+  execute(counter_instance, 2);
 
   Data packet_result, bytes_result, index(2);
   counter_instance->read(packet_result, bytes_result, index);
