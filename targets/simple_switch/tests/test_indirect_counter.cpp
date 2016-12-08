@@ -85,7 +85,7 @@ TEST_F(ExternCounterTest, IndirectCounter) {
   extern_instance->_set_attribute<std::string>("type", counter_type);
   extern_instance->init();
   auto counter_instance =
-      dynamic_cast<IndirectCounter *>(extern_instance.get());
+      dynamic_cast<externs::IndirectCounter *>(extern_instance.get());
   execute(counter_instance, 2);
 
   Data packet_result, bytes_result, index(2);

@@ -19,6 +19,8 @@
 using bm::ExternType;
 using bm::Data;
 
+namespace externs {
+
 class IndirectCounter : public ExternType {
  public:
   BM_EXTERN_ATTRIBUTES {
@@ -42,3 +44,5 @@ class IndirectCounter : public ExternType {
   std::vector<Data> packets;
   std::vector<Data> bytes;
 };
+
+} // namespace externs

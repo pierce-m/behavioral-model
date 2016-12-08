@@ -18,6 +18,8 @@
 
 using bm::Packet;
 
+namespace externs {
+
 void IndirectCounter::init() {
   packets.resize(size.get<size_t>());
   bytes.resize(size.get<size_t>());
@@ -40,7 +42,9 @@ void IndirectCounter::read(Data &_pkts_return,
   _bytes_return = bytes.at(index.get<size_t>());
 }
 
-BM_REGISTER_EXTERN_W_NAME(counter, IndirectCounter);
-BM_REGISTER_EXTERN_W_NAME_METHOD(counter, IndirectCounter, count, const Data &);
+} // namespace externs
+
+BM_REGISTER_EXTERN_W_NAME(counter, externs::IndirectCounter);
+BM_REGISTER_EXTERN_W_NAME_METHOD(counter, externs::IndirectCounter, count, const Data &);
 
 int import_indirect_counter() { return 0; }
