@@ -62,8 +62,7 @@ class ExternCounterTest : public ::testing::Test {
   void execute_count(ExternType *instance, size_t index) {
     ActionFn testActionFn("test_action", 0);
     ActionFnEntry testActionFnEntry(&testActionFn);
-    auto primitive = get_extern_primitive("counter",
-                                          "count");
+    auto primitive = get_extern_primitive("counter", "count");
     testActionFn.push_back_primitive(primitive);
     testActionFn.parameter_push_back_extern_instance(instance);
     testActionFn.parameter_push_back_const(Data(index));
