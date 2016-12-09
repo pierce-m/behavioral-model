@@ -57,7 +57,6 @@
 #include <typeindex>
 
 #include "P4Objects.h"
-#include "extern.h"
 #include "match_tables.h"
 #include "runtime_interface.h"
 #include "lookup_structures.h"
