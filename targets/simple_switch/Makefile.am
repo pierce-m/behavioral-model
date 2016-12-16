@@ -54,9 +54,14 @@ $(top_builddir)/third_party/jsoncpp/libjson.la \
 
 noinst_LTLIBRARIES = libsimpleswitch.la
 
+extern_sources = \
+extern/register.cpp \
+extern/indirect_counter.cpp
+
 libsimpleswitch_la_SOURCES = \
 simple_switch.cpp simple_switch.h primitives.cpp \
-thrift/src/SimpleSwitch_server.cpp
+thrift/src/SimpleSwitch_server.cpp \
+$(extern_sources)
 
 bin_PROGRAMS = simple_switch
 

@@ -63,6 +63,8 @@ REGISTER_HASH(hash_ex);
 REGISTER_HASH(bmv2_hash);
 
 extern int import_primitives();
+extern int import_register();
+extern int import_indirect_counter();
 
 SimpleSwitch::SimpleSwitch(int max_port, bool enable_swap)
   : Switch(enable_swap),
@@ -107,6 +109,8 @@ SimpleSwitch::SimpleSwitch(int max_port, bool enable_swap)
   force_arith_field("intrinsic_metadata", "recirculate_flag");
 
   import_primitives();
+  import_register();
+  import_indirect_counter();
 }
 
 #define PACKET_LENGTH_REG_IDX 0
