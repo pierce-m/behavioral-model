@@ -14,7 +14,7 @@ class Register : public ExternType {
                   
   void init() override;
 
-  void read(Data &_return, const Data &index);
+  void read(Data *register_val, const Data &index);
 
   void write(const Data &index, const Data &value);
 

@@ -89,7 +89,7 @@ TEST_F(ExternCounterTest, IndirectCounter) {
   execute(counter_instance, 2);
 
   Data packet_result, bytes_result, index(2);
-  counter_instance->read(packet_result, bytes_result, index);
+  counter_instance->read(&packet_result, &bytes_result, index);
   ASSERT_EQ((unsigned) 1, packet_result.get_uint());
   ASSERT_EQ((unsigned) 14, bytes_result.get_uint());
 }

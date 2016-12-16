@@ -41,6 +41,6 @@ TEST_F(ExternRegisterTest, Register) {
 
   Data write_val(7), write_index(2), read_val;
   register_instance->write(write_index, write_val);
-  register_instance->read(read_val, write_index);
+  register_instance->read(&read_val, write_index);
   ASSERT_EQ(read_val.get_uint(), write_val.get_uint());
 }

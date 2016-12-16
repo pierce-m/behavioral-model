@@ -33,7 +33,7 @@ class IndirectCounter : public ExternType {
   void count(const Data &index);
 
   // for testing purposes only -- leave unregistered
-  void read(Data &_pkts_return, Data &_bytes_return, const Data &index);
+  void read(Data *pkts_return, Data *bytes_return, const Data &index);
 
  private:
   // constructor params
