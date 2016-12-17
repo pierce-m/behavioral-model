@@ -32,7 +32,7 @@ class ExternRegisterTest : public ::testing::Test {
 TEST_F(ExternRegisterTest, Register) {
   Data register_size(3);
   auto extern_instance =
-      ExternFactoryMap::get_instance()->get_extern_instance("register");
+      ExternFactoryMap::get_instance()->get_extern_instance("Register");
   extern_instance->_register_attributes();
   extern_instance->_set_attribute<Data>("size", register_size);
   extern_instance->init();
