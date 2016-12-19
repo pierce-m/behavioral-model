@@ -56,7 +56,8 @@ noinst_LTLIBRARIES = libsimpleswitch.la
 
 extern_sources = \
 extern/register.cpp \
-extern/indirect_counter.cpp
+extern/indirect_counter.cpp \
+extern/checksum.cpp
 
 libsimpleswitch_la_SOURCES = \
 simple_switch.cpp simple_switch.h primitives.cpp \

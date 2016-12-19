@@ -14,7 +14,7 @@
  */
 
 #include <bm/bm_sim/extern.h>
-#include <bm/bm_sim/P4Objects.h>
+#include <bm/bm_sim/data.h>
 
 using bm::ExternType;
 using bm::Data;
