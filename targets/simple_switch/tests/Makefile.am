@@ -17,7 +17,8 @@ test_truncate \
 test_swap \
 test_queueing \
 test_indirect_counter \
-test_register
+test_register \
+test_checksum
 
 check_PROGRAMS = $(TESTS) test_all
 
@@ -28,6 +29,7 @@ test_swap_SOURCES = $(common_source) test_swap.cpp
 test_queueing_SOURCES = $(common_source) test_queueing.cpp
 test_indirect_counter_SOURCES = $(common_source) test_indirect_counter.cpp ../extern/indirect_counter.cpp
 test_register_SOURCES = $(common_source) test_register.cpp ../extern/register.cpp
+test_checksum_SOURCES = $(common_source) test_checksum.cpp ../extern/checksum.cpp
 
 test_all_SOURCES = $(common_source) \
 test_packet_redirect.cpp \

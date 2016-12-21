@@ -25,7 +25,7 @@ void Checksum16::get(Data &checksum_val, const Data &field_list_id) {
 }
 
 BM_REGISTER_EXTERN(Checksum16);
-BM_REGISTER_EXTERN_METHOD(Checksum16, get, Data &, Data &);
+BM_REGISTER_EXTERN_METHOD(Checksum16, get, Data &, const Data &);
 
 } // namespace externs
 

@@ -1,0 +1,37 @@
+{
+  "header_types" : [
+    {
+      "name" : "h1_t",
+      "id" : 0,
+      "fields" : [
+        ["f1", 64, false],
+        ["f2", 16, false],
+        ["ret", 16, false]
+      ]
+    }
+  ],
+  "headers" : [
+    {
+      "name" : "h1",
+      "id" : 0,
+      "header_type" : "h1_t",
+      "metadata" : false
+    }
+  ],
+  "field_lists": [
+    {
+      "name" : "fl",
+      "id" : 1,
+      "elements" : [
+        {
+          "type" : "field",
+          "value" : ["h1", "f1"]
+        },
+        {
+          "type" : "field",
+          "value" : ["h1", "f2"]
+        }
+      ]
+    }
+  ]
+}
