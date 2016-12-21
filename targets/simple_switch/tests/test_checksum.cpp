@@ -25,6 +25,7 @@
 namespace fs = boost::filesystem;
 
 using namespace bm;
+using externs::Checksum16;
 
 extern int import_checksum16();
 
@@ -105,7 +106,7 @@ TEST_F(ExternChecksumTest, Checksum16) {
   extern_instance->_set_p4objects(&p4objects);
   extern_instance->init();
   auto checksum_instance =
-      dynamic_cast<externs::Checksum16 *>(extern_instance.get());
+      dynamic_cast<Checksum16 *>(extern_instance.get());
   
   pkt->get_phv()->get_header(testHeader).mark_valid();
   auto &input_f1 = pkt->get_phv()->get_field("h1.f1");

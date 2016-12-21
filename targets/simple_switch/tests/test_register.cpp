@@ -32,7 +32,7 @@ class ExternRegisterTest : public ::testing::Test {
 TEST_F(ExternRegisterTest, Register) {
   Data register_size(3);
   auto extern_instance =
-      ExternFactoryMap::get_instance()->get_extern_instance("Register");
+      ExternFactoryMap::get_instance()->get_extern_instance("register");
   extern_instance->_register_attributes();
   extern_instance->_set_attribute<Data>("size", register_size);
   extern_instance->init();
@@ -41,6 +41,6 @@ TEST_F(ExternRegisterTest, Register) {
 
   Data write_val(7), write_index(2), read_val;
   register_instance->write(write_index, write_val);
-  register_instance->read(&read_val, write_index);
+  register_instance->read(read_val, write_index);
   ASSERT_EQ(read_val.get_uint(), write_val.get_uint());
 }
