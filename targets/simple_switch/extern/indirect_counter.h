@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef EXTERNS_INDIRECT_COUNTER_H_
+#define EXTERNS_INDIRECT_COUNTER_H_
+
 #include <bm/bm_sim/extern.h>
 #include <bm/bm_sim/data.h>
 
@@ -46,3 +49,5 @@ class IndirectCounter : public ExternType {
 };
 
 } // namespace externs
+
+#endif // EXTERNS_INDIRECT_COUNTER_H_
